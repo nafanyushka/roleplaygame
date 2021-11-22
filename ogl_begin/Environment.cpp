@@ -1,56 +1,77 @@
 #include "Environment.h"
 #include <ctime>
+	std::map<std::pair<int, int>, Environment*> Environment::environmentOnMap;
 
-std::map<std::pair<int, int>, Environment*> Environment::environmentOnMap;
-
-void Chest::iterate(Player& player)
-{
-	if (item == nullptr)
-		return;
-	if (getStatus())
+	void Environment::clearMap()
 	{
-		for (int i = 0; i < player.getItems(); i++)
+		for (std::map<std::pair<int, int>, Environment*>::iterator it = environmentOnMap.begin(); it != environmentOnMap.end(); it++)
 		{
-			if (player.getInventory()[i].getType() == ItemType::masterkey)
-			{
-				float chance = lvl == 0 ? 100 : 100.0f / (float)lvl;
-				if ((int)((float)(rand() % 100) / (float)player.getAgility()) <= (int)chance) {
-					player.dropItem(i);
-					setStatus(false);
-				}
-				else
-				{
-					player.dropItem(i);
-					return;
-				}
-				break;
-			}
-			if(i + 1 == player.getItems()) return;
+			Environment* point = it->second;
+			delete point;
 		}
 	}
-	player.pickup(*item);
-	item = nullptr;
-}
 
-void Door::iterate(Player& player)
-{
-	if (getStatus())
+	void Chest::iterate(Player& player)
 	{
-		for (int i = 0; i < player.getItems(); i++)
+		if (item == nullptr)
+			return;
+		if (getStatus())
 		{
-			if (player.getInventory()[i].getType() == ItemType::masterkey)
+			for (int i = 0; i < player.getItems(); i++)
 			{
-				float chance = lvl == 0 ? 100 : 100.0f / (float)lvl;
-				if ((int)((float)(rand() % 101) / (float)player.getAgility()) <= (int)chance) {
-					player.dropItem(i);
-					setStatus(false);
-				}
-				else
+				if (player.getInventory()[i]->getType() == ItemType::masterkey)
 				{
-					player.dropItem(i);
-					return;
+					float chance = lvl == 0 ? 100 : 100.0f / (float)lvl;
+					float personalChance = (int)((float)(rand() % 100) / (float)player.getAgility());
+					if (personalChance <= (int)chance) {
+						//player.dropItem(i);
+						setStatus(false);
+						player.setMovepoints(player.getMovepoints() - 1);
+						player.pickup(item);
+						item = nullptr;
+						return;
+					}
+					else
+					{
+						player.setMovepoints(player.getMovepoints() - 1);
+						player.dropItem(i);
+						return;
+					}
+					break;
+				}
+				if (i + 1 == player.getItems()) return;
+			}
+		}
+		else
+		{
+			player.setMovepoints(player.getMovepoints() - 1);
+			player.pickup(item);
+			item = nullptr;
+			return;
+		}
+	}
+
+	void Door::iterate(Player& player)
+	{
+		if (getStatus())
+		{
+			for (int i = 0; i < player.getItems(); i++)
+			{
+				if (player.getInventory()[i]->getType() == ItemType::masterkey)
+				{
+					float chance = lvl == 0 ? 100 : 100.0f / (float)lvl;
+					player.setMovepoints(player.getMovepoints() - 1);
+					if ((int)((float)(rand() % 101) / (float)player.getAgility()) <= (int)chance) {
+						//player.dropItem(i);
+						setStatus(false);
+						return;
+					}
+					else
+					{
+						player.dropItem(i);
+						return;
+					}
 				}
 			}
 		}
 	}
-}
