@@ -2,13 +2,16 @@
 
 #include "Items.h"
 #include <iostream>
+#include <list>
 
 #define WEAPON 0
 #define HELMET 1
 #define BIB 2
 #define PANTS 3
 #define BOOTS 4
-
+#define EQUIPMENT_SIZE 5
+	
+int getCoordPlane(int coord); int getCoordMap(int coord);
 
 	enum Direction
 	{
@@ -77,14 +80,14 @@
 		inline int getInventorySize() const { return INVENTORY_SIZE; }
 		inline int getHp() const { return hp; }
 		inline int getMaxHp() const { return maxHp; }
-		inline int getDamage() const { return damage; }
+		virtual inline int getDamage() const { return damage; }
 		inline int getProtection() const { return protection; }
 		inline int getExp() const { return exp; }
 		inline int getMovepoints() const { return movepoints; }
 		inline CreatureType getType() const { return type; }
 		inline Coord getCoord() const { return coord; }
 		virtual void move(Direction vector, const int& mapSize);
-		ItemMassive* hit(Creature& creature);
+		virtual ItemMassive* hit(Creature& creature);
 		virtual void setMovepoints();
 		virtual inline void setMovepoints(int mp) { movepoints = mp; }
 	};
@@ -119,7 +122,10 @@
 		inline Equipment** const& getEquipment() const { return equipment; }
 		inline void setItems(int items) { this->items = items; }
 		inline int getItems() const { return items; }
-		inline int getAgility() const { return agility; }
+		int getAgility() const;
+		int getPower() const;
+		int getIntellegence() const;
+		int getDamage() const override;
 		inline void setAgility(int a) { agility = a; }
 		static inline int getInventorySize() { return INVENTORY_SIZE; }
 
@@ -131,15 +137,19 @@
 		void equip(int index);
 		void dropItem(int index);
 		void move(Direction vector, const int& mapSize) override;
+		ItemMassive* hit(Creature& creature) override;
 	};
 
 	class Enemy : public Creature
 	{
 	private:
-
+		static std::list<Enemy*> enemys;
 	public:
 		inline Enemy(int hp, int dmg, int pro, int exp, CreatureType t, Coord spawnCoord) : Creature(hp, dmg, pro, exp, t, spawnCoord)
 		{
-
+			enemys.push_back(this);
 		}
+		void goToPlayer(Player& player, const int& mapSize);
+		static inline std::list<Enemy*>& getEnemys() { return enemys; }
+		static Enemy* getEnemy(int x, int y);
 	};

@@ -2,23 +2,23 @@
 #include <gl/gl.h>
 #include "Creatures.h"
 #include "Environment.h"
+#include "Map.h"
 #pragma comment(lib, "opengl32.lib")
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 void EnableOpenGL(HWND hwnd, HDC*, HGLRC*);
 void DisableOpenGL(HWND, HDC, HGLRC);
-int getCoordPlane(int coord); int getCoordMap(int coord);
 
 //-------------------------VARIABLES---------------------------//
-
 namespace Map
 {
-	const int MAP_SIZE = 24;
+	const int MAP_SIZE = 16;
 	const int VISION = 8;
 	bool isPressed = false;
 	Player player(100, 50, 7, 0, humanic, Coord(getCoordPlane(0), getCoordPlane(0)));
 	char map[MAP_SIZE][MAP_SIZE];
 	int floor[MAP_SIZE][MAP_SIZE];
+	char enemys[MAP_SIZE][MAP_SIZE];
 
 	int w, h;
 
@@ -69,6 +69,21 @@ void drawSquare(float size, float x, float y)
 	glPopMatrix();
 }
 
+void drawRectangle(float h, float l, float x, float y)
+{
+	glPushMatrix();
+	glTranslatef(x, y, 0);
+	glBegin(GL_TRIANGLES);
+	glVertex2f(0.0f, 0.0f);
+	glVertex2f(l, 0.0f);
+	glVertex2f(0.f, h);
+	glVertex2f(0.f, h);
+	glVertex2f(l, 0.0f);
+	glVertex2f(l, h);
+	glEnd();
+	glPopMatrix();
+}
+
 int getCoordMap(int coord)
 {
 	return (coord + Map::MAP_SIZE / 2);
@@ -77,6 +92,11 @@ int getCoordMap(int coord)
 int getCoordPlane(int coord)
 {
 	return (coord - Map::MAP_SIZE / 2);
+}
+
+void drawEnemy(Enemy& enemy, float& d, int i, int j)
+{
+	drawRectangle(d, d * (float)enemy.getHp() / (float)enemy.getMaxHp(), d * (float)i, d * (float)j);
 }
 
 void see(int& x, int& y, float& d)
@@ -108,13 +128,24 @@ void see(int& x, int& y, float& d)
 			{
 				char place = Map::map[coordX + i][coordY + j];
 				float floor = Map::floor[coordX + i][coordY + j];
+				char* enemy = &Map::enemys[coordX + i][coordY + j];
 				float cf = 0.03f;
-				if (place == '.')
+				if (*enemy == 'e')
+				{
+					glColor3f(0.0f, 1.0f, 0.0f);
+					Enemy* e = Enemy::getEnemy(coordX + i, coordY + j);
+					if (e == nullptr) return;
+					if (e->getHp() <= 0)
+						*enemy = '-';
+					else
+						drawEnemy(*Enemy::getEnemy(coordX + i, coordY + j), d, i, j);
+				}
+				else if (place == '.')
 				{
 					glColor3f(floor * cf, floor * cf, floor * cf);
 					drawSquare(d, d * (float)i, d * (float)j);
 				}
-				if (place == '#')
+				else if (place == '#')
 				{
 					glColor3f(0.5f, 0.5f, 0.3f);
 					drawSquare(d, d * (float)i, d * (float)j);
@@ -239,9 +270,9 @@ void drawHealthBar()
 		glColor3f(0.0f, 1.0f, 0.0f);
 		glVertex2f(0.0f, 0.01f);
 		glVertex2f(1.0f * Map::player.getHp() / Map::player.getMaxHp(), 0.01f);
-		glColor3f(0.0f, 0.0f, 1.0f);
-		glVertex2f(0.0f, 0.0f);
-		glVertex2f(1.0f, 0.0f);
+		//glColor3f(0.0f, 0.0f, 1.0f);
+		//glVertex2f(0.0f, 0.0f);
+		//glVertex2f(1.0f, 0.0f);
 	glEnd();
 	glLineWidth(1);
 	glPopMatrix();
@@ -261,9 +292,15 @@ void move(int& x, int& y)
 	if (!isPressed)
 	{
 		char* nextC = &Map::map[mapX][mapY + 1];
+		char* nextE = &Map::enemys[mapX][mapY + 1];
 		Coord c(mapX, mapY + 1);
 		if (GetKeyState(VK_UP) < 0) { if (mapY != Map::MAP_SIZE - 1) { if (*nextC != '#') {
 			isPressed = true;
+			if (*nextE == 'e')
+			{
+				Enemy* e = Enemy::getEnemy(mapX, mapY + 1);
+				if (e != nullptr) { Map::player.hit(*e); return; }
+			}
 			if (*nextC == '.') {
 				Map::player.move(top, Map::MAP_SIZE); return;
 			}
@@ -285,9 +322,15 @@ void move(int& x, int& y)
 			}
 		} } }
 		nextC = &Map::map[mapX][mapY - 1];
+		nextE = &Map::enemys[mapX][mapY - 1];
 		c = Coord(mapX, mapY - 1);
 		if (GetKeyState(VK_DOWN) < 0) { if (mapY != 0) { if (*nextC != '#') {
 			isPressed = true;
+			if (*nextE == 'e')
+			{
+				Enemy* e = Enemy::getEnemy(mapX, mapY - 1);
+				if (e != nullptr) { Map::player.hit(*e); return; }
+			}
 			if (*nextC == '.')
 			{
 				Map::player.move(bottom, Map::MAP_SIZE); return;
@@ -310,9 +353,15 @@ void move(int& x, int& y)
 			}
 		} } }
 		nextC = &Map::map[mapX - 1][mapY];
+		nextE = &Map::enemys[mapX - 1][mapY];
 		c = Coord(mapX - 1, mapY);
 		if (GetKeyState(VK_LEFT) < 0) { if (mapX != 0) { if (*nextC != '#') { 
 			isPressed = true;
+			if (*nextE == 'e')
+			{
+				Enemy* e = Enemy::getEnemy(mapX - 1, mapY);
+				if (e != nullptr) { Map::player.hit(*e); return; }
+			}
 			if (*nextC == '.') {
 				Map::player.move(left, Map::MAP_SIZE); return;
 			}
@@ -334,9 +383,15 @@ void move(int& x, int& y)
 			}
 		} } }
 		nextC = &Map::map[mapX + 1][mapY];
+		nextE = &Map::map[mapX + 1][mapY];
 		c = Coord(mapX + 1, mapY);
 		if (GetKeyState(VK_RIGHT) < 0) { if (mapX != Map::MAP_SIZE - 1) { if(*nextC != '#') {
 			isPressed = true;
+			if (*nextE == 'e')
+			{
+				Enemy* e = Enemy::getEnemy(mapX + 1, mapY);
+				if (e != nullptr) { Map::player.hit(*e); return; }
+			}
 			if (*nextC == '.') {
 				Map::player.move(right, Map::MAP_SIZE); return;
 			}
@@ -365,6 +420,15 @@ void move(int& x, int& y)
 	}
 	Map::player.setCoord(Coord(x, y));
 }
+
+void botMove(Enemy& enemy)
+{
+	//if(Map::enemys[enemy.getCoord().x][enemy.getCoord().y]);
+	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = '-';
+	if (enemy.getHp() <= 0) return;
+	enemy.goToPlayer(Map::player, Map::MAP_SIZE);
+	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = 'e';
+}
 //---------------------------------------------------------//
 
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -382,12 +446,13 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	float scale = 0.0001f;
 	srand(time(NULL));
 	float d = 2.0f / Map::VISION;
-	using Map::map; using Map::floor;
+	using Map::map; using Map::floor; using Map::enemys;
 	for(int i = 0; i < Map::MAP_SIZE; i++)
 		for (int j = 0; j < Map::MAP_SIZE; j++)
 		{
 			map[i][j] = '.';
 			floor[i][j] = rand() % 10;
+			enemys[i][j] = '-';
 		}
 	//TEST!!!
 	//for(int i = 0; i < Map::MAP_SIZE; i++)
@@ -422,6 +487,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	Environment::getMap()->emplace(std::pair<int, int>(ch.x, ch.y), chest);
 	Environment::getMap()->emplace(std::pair<int, int>(ch1.x, ch1.y), chest1);
 	Environment::getMap()->emplace(std::pair<int, int>(ch2.x, ch2.y), chest2);
+
+	Coord z(1, 5);
+	Enemy enemy(100, 30, 30, 5, zombie, z);
+	enemys[1][5] = 'e';
 	//TEST!!!
 	/* register window class */
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -461,7 +530,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	EnableOpenGL(hwnd, &hDC, &hRC);
 
 	/* program main loop */
-	while (!bQuit)
+	while (!bQuit && Map::player.getHp() > 0)
 	{
 		/* check for messages */
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -505,8 +574,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			}
 			else
 			{
-				Sleep(1000);
-				Map::player.setMovepoints();
+				Sleep(500);
+				botMove(enemy);
+				if (enemy.getMovepoints() <= 0)
+					Map::player.setMovepoints();
 			}
 			//-----------------------------------------------------------------------GRAPHICS
 			Sleep(1);

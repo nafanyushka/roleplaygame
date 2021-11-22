@@ -1,5 +1,8 @@
 #include "Creatures.h"
+#include "Map.h"
 #include <math.h>
+
+std::list<Enemy*> Enemy::enemys;
 
 void Creature::move(Direction vector, const int& mapSize)
 	{
@@ -39,7 +42,7 @@ void Creature::move(Direction vector, const int& mapSize)
 
 ItemMassive* Creature::hit(Creature& creature)
 	{
-		creature.hp -= damage;
+		creature.hp -= getDamage();
 		movepoints--;
 		ItemMassive* im = nullptr;
 		if (creature.hp <= 0)
@@ -55,7 +58,7 @@ void Creature::setMovepoints()
 		{
 		case zombie:
 			if (movepoints == -1)
-				movepoints = 1;
+				movepoints = 3;
 			else if (movepoints == 0)
 				movepoints = -1;
 			break;
@@ -70,12 +73,52 @@ void Creature::setMovepoints()
 			break;
 		case icy:
 			if (movepoints == -1)
-				movepoints = 1;
+				movepoints = 4;
 			else if (movepoints == 0)
 				movepoints = -1;
 			break;
 		}
 	}
+
+int Player::getAgility() const
+{
+	int resultAgility = agility;
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		resultAgility += equipment[i] == nullptr ? 0 : equipment[i]->getAgil();
+	}
+	return resultAgility;
+}
+
+int Player::getPower() const
+{
+	int resultPower = power;
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		resultPower += equipment[i] == nullptr ? 0 : equipment[i]->getPow();
+	}
+	return resultPower;
+}
+
+int Player::getIntellegence() const
+{
+	int resultInt = intelligence;
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		resultInt += equipment[i] == nullptr ? 0 : equipment[i]->getInt();
+	}
+	return resultInt;
+}
+
+int Player::getDamage() const
+{
+	int resultDmg = Creature::getDamage();
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		resultDmg += equipment[i] == nullptr ? 0 : equipment[i]->getDmg();
+	}
+	return resultDmg;
+}
 
 void Player::pickup(Item* item)
 	{
@@ -207,6 +250,13 @@ void Player::move(Direction vector, const int& mapSize)
 		setMovepoints(getMovepoints() - 1);
 	}
 
+ItemMassive* Player::hit(Creature& creature)
+{
+	creature.setHp(creature.getHp() - getDamage());
+	setMovepoints(getMovepoints() - 1);
+	return nullptr;
+}
+
 	//void main()
 	//{
 	//	Player player(100, 30, 4, 0, humanic, Coord(0, 0));
@@ -214,3 +264,48 @@ void Player::move(Direction vector, const int& mapSize)
 	//	player.hit(zombie);
 	//	std::cout << zombie.getHp() << std::endl;
 	//}
+
+void Enemy::goToPlayer(Player& player, const int& mapSize)
+{
+	int pX = getCoordMap(player.getCoord().x), pY = getCoordMap(player.getCoord().y);
+	if (getMovepoints() <= 0) 
+	{
+		setMovepoints();
+		return; 
+	}
+	if (abs(pX - getCoord().x) <= 1 && abs(pY - getCoord().y) <= 1)
+	{
+		hit(player);
+		return;
+	}
+	if (pX - getCoord().x > 0) 
+	{ 
+		move(right, mapSize); 
+		return; 
+	}
+	if (pX - getCoord().x < 0) 
+	{
+		move(left, mapSize); return;
+	}
+	if (pY - getCoord().y > 0) 
+	{ 
+		move(top, mapSize);
+		return; 
+	}
+	if (pY - getCoord().y < 0) 
+	{
+		move(bottom, mapSize);
+		return; 
+	}
+}
+
+Enemy* Enemy::getEnemy(int x, int y)
+{
+	for (Enemy* e : enemys)
+	{
+		Coord c = e->getCoord();
+		if (c.x == x && c.y == y)
+			return e;
+	}
+	return nullptr;
+}
