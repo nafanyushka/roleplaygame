@@ -1,5 +1,6 @@
 #pragma once
 #include "Creatures.h"
+#include "Map.h"
 #include "Items.h"
 #include <map>
 
@@ -30,7 +31,7 @@
 		Item* item;
 		int lvl = 1;
 	public:
-		inline Chest(Coord& coord, Item& item, bool isClosed, int lvl) : Environment(coord, isClosed), item(&item), lvl(lvl) { }
+		inline Chest(Coord& coord, Item& item, bool isClosed, int lvl) : Environment(coord, isClosed), item(&item), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
 		inline ~Chest() { /*if (item != nullptr) delete item;*/ }
 		void iterate(Player& player) override;
 	};
@@ -40,7 +41,7 @@
 	private:
 		int lvl = 1;
 	public:
-		inline Door(Coord& coord, bool isClosed, int lvl) : Environment(coord, isClosed), lvl(lvl) { }
+		inline Door(Coord& coord, bool isClosed, int lvl) : Environment(coord, isClosed), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
 		inline ~Door() {}
 	
 		void iterate(Player& player) override;

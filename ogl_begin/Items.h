@@ -1,26 +1,13 @@
 #pragma once
+#include "Map.h"
 
 #define AGIL 0
 #define POW 1
 #define INT 2
 #define DMG 3
+#define PROT 4
 
-	enum ItemType
-	{
-		equipment,
-		potion,
-		masterkey
-	};
-
-	enum EquipmentType
-	{
-		weapon,
-		helmet,
-		bib,
-		pants,
-		boots
-	};
-
+	
 	class Item
 	{
 	private:
@@ -35,6 +22,18 @@
 		//virtual void iterate(Player& player);
 	};
 
+	class Potion : public Item
+	{
+	private:
+		int effect;
+		EffectType type;
+	public:
+		inline Potion(int effect, EffectType type) : Item(potion), type(type), effect(effect) {}
+
+		inline EffectType getEffectType() { return type; }
+		inline int getEffect() const { return effect; }
+	};
+
 	class Equipment
 	{
 	private:
@@ -44,29 +43,32 @@
 		inline Equipment() : equipmentType(weapon) {}
 		inline EquipmentType getEquipmentType() { return equipmentType; }
 		inline virtual int getDmg() const = 0;
+		virtual int getProtection() const = 0;
 		virtual int getInt() const = 0;
 		virtual int getPow() const = 0;
 		virtual int getAgil() const = 0;
 	};
 
-	class Enchantment
+	class Artifact
 	{
 	private:
-		int dCharacteristics[4];
+		int dCharacteristics[5];
 	public:
-		inline Enchantment()
+		inline Artifact()
 		{
 			dCharacteristics[DMG] = 0;
 			dCharacteristics[AGIL] = 0;
 			dCharacteristics[INT] = 0;
 			dCharacteristics[POW] = 0;
+			dCharacteristics[PROT] = 0;
 		}
-		inline Enchantment(int da, int dp, int di, int dd)
+		inline Artifact(int da, int dp, int di, int dd, int dprot)
 		{
 			dCharacteristics[AGIL] = da;
 			dCharacteristics[POW] = dp;
 			dCharacteristics[INT] = di;
 			dCharacteristics[DMG] = dd;
+			dCharacteristics[PROT] = dprot;
 		}
 		inline const int* getDCharacteristics() const { return dCharacteristics; }
 	};
@@ -75,13 +77,78 @@
 	{
 	private:
 		int damage;
-		Enchantment* enchantment;
+		bool isEnchanted;
 	public:
-		inline Weapon() : Item(equipment), Equipment(), enchantment(nullptr), damage(10) {}
-		inline Weapon(int dmg) : Item(equipment), damage(dmg), Equipment(), enchantment(nullptr) {}
-		inline Weapon(int dmg, Enchantment* ench) : Item(equipment), damage(dmg), Equipment(), enchantment(ench) {}
-		inline int getDmg() const override { return damage + (enchantment == nullptr ? 0 : enchantment->getDCharacteristics()[DMG]); }
-		inline int getAgil() const override { return enchantment == nullptr ? 0 : enchantment->getDCharacteristics()[AGIL]; }
-		inline int getInt() const override { return enchantment == nullptr ? 0 : enchantment->getDCharacteristics()[INT]; }
-		inline int getPow() const override { return enchantment == nullptr ? 0 : enchantment->getDCharacteristics()[POW]; }
+		inline Weapon() : Item(equipment), Equipment(), damage(10), isEnchanted(false) {}
+		inline Weapon(int dmg) : Item(equipment), damage(dmg), Equipment(), isEnchanted(false) {}
+		inline bool getIsEnchanted() const { return isEnchanted; }
+		inline int getProtection() const override { return 0; }
+		inline int getDmg() const override { return damage; }
+		inline int getAgil() const override { return 0; }
+		inline int getInt() const override { return 0; }
+		inline int getPow() const override { return 0; }
+	protected:
+		inline Weapon(int dmg, bool ench) : Item(equipment), damage(dmg), Equipment(), isEnchanted(ench) {}
+		inline Weapon(bool ench) : Item(equipment), Equipment(), isEnchanted(ench) {}
+	};
+
+	class Protection : public Item, public Equipment
+	{
+	private:
+		int protection;
+	public:
+		inline Protection(EquipmentType type, int prot) : Item(equipment), Equipment(type), protection(prot) {}
+		inline int getProtection() const override { return protection; }
+		inline int getDmg() const override { return 0; }
+		inline int getAgil() const override { return 0; }
+		inline int getInt() const override { return 0; }
+		inline int getPow() const override { return 0; }
+	};
+
+	class ArtifactWeapon : public virtual Weapon, public Artifact
+	{
+	private:
+		
+	public:
+		inline ArtifactWeapon() : Weapon(), Artifact() {}
+		inline ArtifactWeapon(int dmg, int da, int dp, int di, int dd, int dprot) : Weapon(dmg), Artifact(da, dp, di, dd, dprot) {}
+		inline int getProtection() const override { return getDCharacteristics()[PROT]; }
+		inline int getDmg() const override { return Weapon::getDmg() + getDCharacteristics()[DMG]; }
+		inline int getAgil() const override { return getDCharacteristics()[AGIL]; }
+		inline int getInt() const override { return getDCharacteristics()[INT]; }
+		inline int getPow() const override { return getDCharacteristics()[POW]; }
+	};
+
+	class Enchantment
+	{
+	private:
+		CreatureType contra;
+		float koeff;
+	protected:
+		inline Enchantment(float k, CreatureType type) : koeff(k), contra(type) {}
+		inline CreatureType getContra() const { return contra; }
+		inline float getKoeff() const { return koeff; }
+	};
+
+	class EnchantedWeapon : public virtual Weapon, public Enchantment
+	{
+	public:
+		inline EnchantedWeapon(int dmg, float k, CreatureType gainAgainst) : Weapon(dmg, true), Enchantment(abs(k), gainAgainst) {}
+		virtual int getDmgTo(CreatureType creature);
+	protected:
+		inline EnchantedWeapon(float k, CreatureType gainAgainst) : Weapon(true), Enchantment(abs(k), gainAgainst) {}
+	};
+
+	class EnchantedArtifactWeapon : public EnchantedWeapon, public ArtifactWeapon
+	{
+	private:
+
+	public:
+		inline EnchantedArtifactWeapon(int dmg, int da, int dp, int di, int dd, int dprot, float k, CreatureType gainAgainst) : Weapon(dmg, true), ArtifactWeapon(dmg, da, dp, di, dd, dprot), EnchantedWeapon(dmg, k, gainAgainst) {}
+		inline int getProtection() const override { return getDCharacteristics()[PROT]; }
+		inline int getDmg() const override { return Weapon::getDmg() + getDCharacteristics()[DMG]; }
+		inline int getAgil() const override { return getDCharacteristics()[AGIL]; }
+		inline int getInt() const override { return getDCharacteristics()[INT]; }
+		inline int getPow() const override { return getDCharacteristics()[POW]; }
+		int getDmgTo(CreatureType creature) override;
 	};

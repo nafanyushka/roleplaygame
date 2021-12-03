@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Map.h"
 #include "Items.h"
 #include <iostream>
 #include <list>
@@ -12,30 +13,6 @@
 #define EQUIPMENT_SIZE 5
 	
 int getCoordPlane(int coord); int getCoordMap(int coord);
-
-	enum Direction
-	{
-		top,
-		bottom,
-		left,
-		right
-	};
-
-	enum CreatureType
-	{
-		zombie,
-		humanic,
-		zoo,
-		demonic,
-		icy,
-	};
-
-	enum Stat
-	{
-		agil,
-		power,
-		intel
-	};
 
 	struct Coord
 	{
@@ -86,10 +63,12 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline int getMovepoints() const { return movepoints; }
 		inline CreatureType getType() const { return type; }
 		inline Coord getCoord() const { return coord; }
+		inline void setDamage(int dmg) { damage = dmg; }
 		virtual void move(Direction vector, const int& mapSize);
 		virtual ItemMassive* hit(Creature& creature);
 		virtual void setMovepoints();
 		virtual inline void setMovepoints(int mp) { movepoints = mp; }
+		virtual std::string getString();
 	};
 
 	class Player : public Creature //x, y - Относительно карты, а не массива символов.
@@ -104,6 +83,8 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		Item** inventory;
 		Equipment** equipment;
 		int items;
+
+		int getDamageTo(CreatureType target) const;
 	public:
 		inline Player(int hp, int dmg, int pro, int exp, CreatureType t, Coord spawnCoord) : Creature(hp, dmg, pro, exp, t, spawnCoord), items(0)
 		{
@@ -124,11 +105,18 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline int getItems() const { return items; }
 		int getAgility() const;
 		int getPower() const;
-		int getIntellegence() const;
+		int getIntelligence() const;
 		int getDamage() const override;
+		inline void heal(int hp) { if (this->getHp() + hp > this->getMaxHp()) setHp(getMaxHp()); else setHp(getHp() + hp); };
 		inline void setAgility(int a) { agility = a; }
 		static inline int getInventorySize() { return INVENTORY_SIZE; }
 
+		std::string getLvlString();
+		std::string getAgilityString();
+		std::string getPowerString();
+		std::string getIntelligenceString();
+		std::string getProtectionString();
+		std::string getDmgString();
 		void pickup(Item* item);
 		void upLvl();
 		void upStats(Stat stat);
@@ -149,7 +137,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		{
 			enemys.push_back(this);
 		}
-		void goToPlayer(Player& player, const int& mapSize);
+		void goToPlayer(Player& player, const int& mapSize, char( *map )[Map::MAP_SIZE], char ( *enemyMap )[Map::MAP_SIZE]);
 		static inline std::list<Enemy*>& getEnemys() { return enemys; }
 		static Enemy* getEnemy(int x, int y);
 	};

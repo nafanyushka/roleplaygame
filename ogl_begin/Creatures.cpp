@@ -1,6 +1,12 @@
 #include "Creatures.h"
 #include "Map.h"
 #include <math.h>
+#include <string>
+#define ZOMBIE_MOVE 5
+#define HUMAN_MOVE 3
+#define DEMON_MOVE 2
+#define ZOO_MOVE 5
+#define ICY_MOVE 7
 
 std::list<Enemy*> Enemy::enemys;
 
@@ -42,7 +48,8 @@ void Creature::move(Direction vector, const int& mapSize)
 
 ItemMassive* Creature::hit(Creature& creature)
 	{
-		creature.hp -= getDamage();
+		int dmg = getDamage() - creature.getProtection();
+		creature.hp -= dmg < 0 ? 0 : dmg;
 		movepoints--;
 		ItemMassive* im = nullptr;
 		if (creature.hp <= 0)
@@ -58,27 +65,59 @@ void Creature::setMovepoints()
 		{
 		case zombie:
 			if (movepoints == -1)
-				movepoints = 3;
+				movepoints = ZOMBIE_MOVE;
 			else if (movepoints == 0)
 				movepoints = -1;
 			break;
 		case humanic:
-			movepoints++;
+			movepoints += HUMAN_MOVE;
 			break;
 		case demonic:
-			movepoints += 2;
+			movepoints += DEMON_MOVE;
 			break;
 		case zoo:
-			movepoints += 3;
+			movepoints += ZOO_MOVE;
 			break;
 		case icy:
 			if (movepoints == -1)
-				movepoints = 4;
+				movepoints = ICY_MOVE;
 			else if (movepoints == 0)
 				movepoints = -1;
 			break;
 		}
 	}
+
+std::string Creature::getString()
+{
+	std::string str;
+	str.append(
+		type == zombie ? "Zombie " :
+		type == CreatureType::humanic ? "Human " :
+		type == CreatureType::demonic ? "Demon " :
+		type == CreatureType::icy ? "Icy " : "Zoo"
+	);
+	str.append("EXP: ");
+	str.append(std::to_string(exp));
+	str.append(" HP: ");
+	str.append(std::to_string(hp));
+	str.append(" PROTECTION: ");
+	str.append(std::to_string(protection));
+	str.append(" DMG: ");
+	str.append(std::to_string(damage));
+	str.append(".");
+	return str;
+}
+
+int Player::getDamageTo(CreatureType target) const //ÐÀÑ×ÅÒ ÓÐÎÍÀ Ñ ÎÐÓÆÈß
+{
+	if (equipment[WEAPON] == nullptr)
+		return getDamage();
+	Weapon* weapon = dynamic_cast<Weapon*>(equipment[WEAPON]);
+	if (!weapon->getIsEnchanted())
+		return getDamage();
+	EnchantedWeapon* enchantedWeapon = dynamic_cast<EnchantedWeapon*>(weapon);
+	return enchantedWeapon->getDmgTo(target) + getDamage();
+}
 
 int Player::getAgility() const
 {
@@ -100,7 +139,7 @@ int Player::getPower() const
 	return resultPower;
 }
 
-int Player::getIntellegence() const
+int Player::getIntelligence() const
 {
 	int resultInt = intelligence;
 	for (int i = 0; i < EQUIPMENT_SIZE; i++)
@@ -118,6 +157,36 @@ int Player::getDamage() const
 		resultDmg += equipment[i] == nullptr ? 0 : equipment[i]->getDmg();
 	}
 	return resultDmg;
+}
+
+std::string Player::getLvlString()
+{
+	return std::to_string(lvl);
+}
+
+std::string Player::getAgilityString()
+{
+	return std::to_string(getAgility());
+}
+
+std::string Player::getPowerString()
+{
+	return std::to_string(getPower());
+}
+
+std::string Player::getIntelligenceString()
+{
+	return std::to_string(getIntelligence());
+}
+
+std::string Player::getProtectionString()
+{
+	return std::to_string(getProtection());
+}
+
+std::string Player::getDmgString()
+{
+	return std::to_string(getDamage());
 }
 
 void Player::pickup(Item* item)
@@ -181,15 +250,33 @@ void Player::setMovepoints()
 				setMovepoints(-1);
 			break;
 		}
-		setMovepoints(getMovepoints() + agility);
+		setMovepoints(getMovepoints() + getAgility());
 	}
 
 void Player::equip(int index)
 	{
 		if (index >= getItems())
 			return;
-		if (getInventory()[index]->getType() != ItemType::equipment)
+		ItemType t = getInventory()[index]->getType();
+		if (t != ItemType::equipment)
+		{
+			if(t != potion)
+				return;
+			Potion* potion = dynamic_cast<Potion*>(getInventory()[index]);
+			switch (potion->getEffectType())
+			{
+			case EffectType::hp:
+				heal(potion->getEffect());
+				dropItem(index);
+				break;
+			case mana:
+				break;
+			case dmg:
+				setDamage(getDamage() + potion->getEffect());
+				break;
+			}
 			return;
+		}
 		Equipment* eq = dynamic_cast<Equipment*>(getInventory()[index]);
 		int select;
 		switch (eq->getEquipmentType())
@@ -252,10 +339,24 @@ void Player::move(Direction vector, const int& mapSize)
 
 ItemMassive* Player::hit(Creature& creature)
 {
-	creature.setHp(creature.getHp() - getDamage());
+	int dmg = getDamageTo(creature.getType());
+	dmg = dmg > creature.getProtection() ? dmg - creature.getProtection() : 0;
+	creature.setHp(creature.getHp() - dmg);
 	setMovepoints(getMovepoints() - 1);
-	return nullptr;
+	ItemMassive* im = nullptr;
+	if (creature.getHp() <= 0)
+	{
+		setExp(getExp() + creature.getExp());
+	}
+	return im;
 }
+
+//ItemMassive* Player::hit(Creature& creature)
+//{
+//	creature.setHp(creature.getHp() - getDamage());
+//	setMovepoints(getMovepoints() - 1);
+//	return nullptr;
+//}
 
 	//void main()
 	//{
@@ -264,21 +365,291 @@ ItemMassive* Player::hit(Creature& creature)
 	//	player.hit(zombie);
 	//	std::cout << zombie.getHp() << std::endl;
 	//}
+	// 
+//--------------------------------------------------BOT LOGIC
+char** createMovementMap(const int& mapSize, char (*map)[Map::MAP_SIZE], char (*enemyMap)[Map::MAP_SIZE])
+{
+	char** movementMap = new char* [mapSize];
+	for (int i = 0; i < mapSize; i++)
+	{
+		movementMap[i] = new char[mapSize];
+		for (int j = 0; j < mapSize; j++)
+		{
+			movementMap[i][j] = enemyMap[i][j] == 'e' ? '#' : map[i][j];
+		}
+	}
+	return movementMap;
+}
 
-void Enemy::goToPlayer(Player& player, const int& mapSize)
+void deleteMovementMap(char**& movementMap, const int& mapSize)
+{
+	for (int i = 0; i < mapSize; i++)
+	{
+		delete[] movementMap[i];
+	}
+	delete[] movementMap;
+}
+
+template <class T>
+struct Node
+{
+	T* t;
+	Node* left;
+	Node* right;
+	Node(T* tmp) : t(tmp), left(nullptr), right(nullptr) {}
+	~Node()
+	{
+		if (left != nullptr)
+		{
+			left->right = nullptr;
+			delete left;
+		}
+		if (right != nullptr)
+		{
+			right->left = nullptr;
+			delete right;
+		}
+	}
+	void putRight(T* t)
+	{
+		if (this->right != nullptr)
+			this->right->putRight(t);
+		else
+		{
+			this->right = new Node<T>(t);
+			this->right->left = this;
+		}
+	}
+	Node<T>* goLeft() { if (left != nullptr) return left->goLeft(); else return this; }
+	void clearCoord()
+	{
+		Node<T>* cleaner = goLeft();
+		while (cleaner != nullptr) {
+			delete cleaner->t;
+			cleaner = cleaner->right;
+		}
+	}
+};
+
+void generateValues(int& x, int& y, const int& mapSize, Node<Coord>*& curNode, char**& movementMap, int**& mapLen)
+{
+	int value = mapLen[x][y];
+	if (x - 1 >= 0)
+	{
+		if (mapLen[x - 1][y] == INT_MAX && movementMap[x - 1][y] != '#' && movementMap[x - 1][y] != 'c' && movementMap[x - 1][y] != '!')
+		{
+			mapLen[x - 1][y] = value + 1;
+			Coord* c = new Coord(x - 1, y);
+			curNode->putRight(c);
+		}
+	}
+	if (x + 1 < mapSize )
+	{
+		if (mapLen[x + 1][y] == INT_MAX && movementMap[x + 1][y] != '#' && movementMap[x + 1][y] != 'c' && movementMap[x + 1][y] != '!')
+		{
+			mapLen[x + 1][y] = value + 1;
+			Coord* c = new Coord(x + 1, y);
+			curNode->putRight(c);
+		}
+	}
+	if (y - 1 >= 0)
+	{
+		if (mapLen[x][y - 1] == INT_MAX && movementMap[x][y - 1] != '#' && movementMap[x][y - 1] != 'c' && movementMap[x][y - 1] != '!')
+		{
+			mapLen[x][y - 1] = value + 1;
+			Coord* c = new Coord(x, y - 1);
+			curNode->putRight(c);
+		}
+	}
+	if (y + 1 < mapSize)
+	{
+		if (mapLen[x][y + 1] == INT_MAX && movementMap[x][y + 1] != '#' && movementMap[x][y + 1] != 'c' && movementMap[x][y + 1] != '!')
+		{
+			mapLen[x][y + 1] = value + 1;
+			Coord* c = new Coord(x, y + 1);
+			curNode->putRight(c);
+		}
+	}
+}
+
+Direction* getPath(int& fromX, int& fromY, int& toX, int& toY, const int& movepoints, char**& movementMap, const int& mapSize, int& pathSize)
+{
+	Direction* path = new Direction[movepoints];
+	int** mapLen = new int* [mapSize];
+	for (int i = 0; i < mapSize; i++)
+	{
+		mapLen[i] = new int[mapSize];
+		for (int j = 0; j < mapSize; j++)
+		{
+			mapLen[i][j] = INT_MAX;
+		}
+	}
+
+	mapLen[fromX][fromY] = 0;
+	Coord* coordHelper = new Coord(fromX, fromY);
+	Node<Coord>* curNode = new Node<Coord>(coordHelper);
+	Node<Coord>* startNode = curNode;
+	int x, y;
+	while (curNode != nullptr)
+	{
+		x = curNode->t->x;  y = curNode->t->y;
+		if (abs(x - toX) == 1 && (y - toY) == 0 || abs(y - toY) == 1 && (x - toX) == 0)
+			break;
+		generateValues(x, y, mapSize, curNode, movementMap, mapLen);
+		curNode = curNode->right;
+		if (curNode == nullptr)
+		{
+			x = toX, y = toY;
+		}
+	}
+	Direction dir = left;
+	Node<Direction>* nullDirNode = new Node<Direction>(&dir);
+	Node<Direction>* curDirNode = nullDirNode;
+	int i = 0;
+	int size;
+	if (x != toX || y != toY)
+	{
+		int value = mapLen[x][y];
+		size = value < movepoints ? value : movepoints;
+		while (true)
+		{
+			if (value == 0)
+				break;
+			if (x - 1 >= 0) 
+			{
+				if (value - 1 == mapLen[x - 1][y])
+				{
+					Direction d = right;
+					Node<Direction>* newDirNode = new Node<Direction>(&d);
+					newDirNode->left = curDirNode->left;
+					newDirNode->right = curDirNode;
+					curDirNode->left = newDirNode;
+					curDirNode = newDirNode;
+					x = x - 1;
+					value--;
+					continue;
+				}
+			}
+
+			if (x + 1 < mapSize) 
+			{
+				if (value - 1 == mapLen[x + 1][y])
+				{
+					Direction d = left;
+					Node<Direction>* newDirNode = new Node<Direction>(&d);
+					newDirNode->left = curDirNode->left;
+					newDirNode->right = curDirNode;
+					curDirNode->left = newDirNode;
+					curDirNode = newDirNode;
+					value--;
+					x = x + 1;
+					continue;
+				}
+			}
+
+			if (y - 1 >= 0) 
+			{
+				if (value - 1 == mapLen[x][y - 1])
+				{
+					Direction d = top;
+					Node<Direction>* newDirNode = new Node<Direction>(&d);
+					newDirNode->left = curDirNode->left;
+					newDirNode->right = curDirNode;
+					curDirNode->left = newDirNode;
+					curDirNode = newDirNode;
+					value--;
+					y -= 1;
+					continue;
+				}
+			}
+
+			if (y + 1 < mapSize)
+			{
+				if (value - 1 == mapLen[x][y + 1])
+				{
+					Direction d = bottom;
+					Node<Direction>* newDirNode = new Node<Direction>(&d);
+					newDirNode->left = curDirNode->left;
+					newDirNode->right = curDirNode;
+					curDirNode->left = newDirNode;
+					curDirNode = newDirNode;
+					value--;
+					y += 1;
+					continue;
+				}
+			}
+		}
+		while (curDirNode != nullDirNode)
+		{
+			if (i == size)
+				break;
+			path[i] = *curDirNode->t;
+			i++;
+			curDirNode = curDirNode->right;
+			pathSize = i;
+		}
+	}
+
+	if (x == toX && y == toY)
+	{
+		delete[] path;
+		pathSize = 0;
+		path = nullptr;
+	}
+
+	delete nullDirNode;
+	startNode->clearCoord();
+	delete startNode;
+	for (int i = 0; i < mapSize; i++)
+	{
+		delete[] mapLen[i];
+	}
+	delete[] mapLen;
+	return path;
+}
+
+void Enemy::goToPlayer(Player& player, const int& mapSize, char(*map)[Map::MAP_SIZE], char(*enemyMap)[Map::MAP_SIZE])
 {
 	int pX = getCoordMap(player.getCoord().x), pY = getCoordMap(player.getCoord().y);
-	if (getMovepoints() <= 0) 
+	if (abs(pX - getCoord().x) >= Map::VISION / 2 || abs(pY - getCoord().y) >= Map::VISION / 2)
+	{
+		setMovepoints(0);
+		return;
+	}
+
+	if (getMovepoints() <= 0)
 	{
 		setMovepoints();
-		return; 
+		return;
 	}
+
+
 	if (abs(pX - getCoord().x) <= 1 && abs(pY - getCoord().y) <= 1)
 	{
 		hit(player);
 		return;
 	}
-	if (pX - getCoord().x > 0) 
+	
+	char** movementMap = createMovementMap(mapSize, map, enemyMap);
+
+	Coord enemyCoord = this->getCoord();
+	int pathSize;
+	Direction* path = getPath(enemyCoord.x, enemyCoord.y, pX, pY, getMovepoints(), movementMap, mapSize, pathSize);
+	if (path == nullptr)
+	{
+		setMovepoints(0);
+	}
+	else
+	{
+		for (int i = 0; i < pathSize; i++)
+		{
+			move(path[i], mapSize);
+		}
+		delete[] path;
+	}
+
+	deleteMovementMap(movementMap, mapSize);
+	/*if (pX - getCoord().x > 0) 
 	{ 
 		move(right, mapSize); 
 		return; 
@@ -296,8 +667,9 @@ void Enemy::goToPlayer(Player& player, const int& mapSize)
 	{
 		move(bottom, mapSize);
 		return; 
-	}
+	}*/
 }
+//--------------------------------------------------BOT LOGIC
 
 Enemy* Enemy::getEnemy(int x, int y)
 {
@@ -305,7 +677,12 @@ Enemy* Enemy::getEnemy(int x, int y)
 	{
 		Coord c = e->getCoord();
 		if (c.x == x && c.y == y)
-			return e;
+		{
+			if (e->getHp() > 0)
+				return e;
+			else
+				return nullptr;
+		}
 	}
 	return nullptr;
 }

@@ -3,6 +3,7 @@
 #include "Creatures.h"
 #include "Environment.h"
 #include "Map.h"
+#include "library/stb_easy_font.h"
 #pragma comment(lib, "opengl32.lib")
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
@@ -12,22 +13,41 @@ void DisableOpenGL(HWND, HDC, HGLRC);
 //-------------------------VARIABLES---------------------------//
 namespace Map
 {
-	const int MAP_SIZE = 16;
-	const int VISION = 8;
+	Player player(100, 30, 0, 0, humanic, Coord(getCoordPlane(0), getCoordPlane(0)));
+	//const int MAP_SIZE = SIZE;
 	bool isPressed = false;
-	Player player(100, 50, 7, 0, humanic, Coord(getCoordPlane(0), getCoordPlane(0)));
 	char map[MAP_SIZE][MAP_SIZE];
 	int floor[MAP_SIZE][MAP_SIZE];
 	char enemys[MAP_SIZE][MAP_SIZE];
-
+	Coord info(-1, -1);
 	int w, h;
-
+	int watchingIndex = 0;
+	float fading = 0.0f;
 	//FUN
 	float tetha = 0.0f;
 }
 //-------------------------------------------------------------//
 
 //-------------------------FUNCS---------------------------//
+void printString(float x, float y, char* text, float r, float g, float b)
+{
+	static char buffer[99999]; // ~500 chars
+	int num_quads;
+
+	num_quads = stb_easy_font_print(x, y, text, NULL, buffer, sizeof(buffer));
+
+	glColor3f(r, g, b);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 16, buffer);
+	glDrawArrays(GL_QUADS, 0, num_quads * 4);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+
+void gameInit()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
 
 void drawNazi(float size, float x, float y)
 {
@@ -67,6 +87,12 @@ void drawSquare(float size, float x, float y)
 		glVertex2f(size, size);
 	glEnd();
 	glPopMatrix();
+}
+
+void drawInfoSquare(float size, float x, float y, float fading)
+{
+	glColor4f(0, 1.0f, 1.0f, 1.0f * sin(fading / 4.0f) * 0.5f);
+	drawSquare(size, x, y);
 }
 
 void drawRectangle(float h, float l, float x, float y)
@@ -126,6 +152,7 @@ void see(int& x, int& y, float& d)
 		{
 			if (coordX + i < Map::MAP_SIZE && coordX + i >= 0 && coordY + j < Map::MAP_SIZE && coordY + j >= 0)
 			{
+				
 				char place = Map::map[coordX + i][coordY + j];
 				float floor = Map::floor[coordX + i][coordY + j];
 				char* enemy = &Map::enemys[coordX + i][coordY + j];
@@ -134,11 +161,13 @@ void see(int& x, int& y, float& d)
 				{
 					glColor3f(0.0f, 1.0f, 0.0f);
 					Enemy* e = Enemy::getEnemy(coordX + i, coordY + j);
-					if (e == nullptr) return;
-					if (e->getHp() <= 0)
-						*enemy = '-';
-					else
-						drawEnemy(*Enemy::getEnemy(coordX + i, coordY + j), d, i, j);
+					if (e != nullptr)
+					{
+						if (e->getHp() <= 0)
+							*enemy = '-';
+						else
+							drawEnemy(*Enemy::getEnemy(coordX + i, coordY + j), d, i, j);
+					}
 				}
 				else if (place == '.')
 				{
@@ -162,6 +191,11 @@ void see(int& x, int& y, float& d)
 					else glColor3f(0.74f, 0.42f, 0.19f);
 					drawSquare(d, d * (float)i, d * (float)j);
 				}
+				if (coordX + i == Map::info.x && coordY + j == Map::info.y)
+				{
+					drawInfoSquare(d, d * (float)i, d * (float)j, Map::fading);
+					Map::fading += 0.1f;
+				}
 			}
 		}
 	glColor3f(1.0f, 1.0f, 1.0f);
@@ -180,6 +214,75 @@ void see(int& x, int& y, float& d)
 			glEnd();
 		}
 	}
+}
+
+Coord mapInfo(int&& x, int&& y, float& mouseX, float& mouseY, float& d)
+{
+	int coordX = getCoordMap(x);
+	int coordY = getCoordMap(y);
+	float fromX = -1.0f, toX = 1.0f, fromY = fromX, toY = toX;
+	if (getCoordMap(y) - Map::VISION / 2 <= -1)
+	{
+		fromY = 0 - d * (float)coordY;
+	}
+	if (getCoordMap(x) - Map::VISION / 2 <= -1)
+	{
+		fromX = 0 - d * (float)coordX;
+	}
+	if (getCoordMap(y) + Map::VISION / 2 > Map::MAP_SIZE)
+	{
+		toY = 0 + d * (float)(Map::MAP_SIZE - coordY);
+	}
+	if (getCoordMap(x) + Map::VISION / 2 > Map::MAP_SIZE)
+	{
+		toX = 0 + d * (float)(Map::MAP_SIZE - coordX);
+	}
+
+	if (!(fromY < mouseY && toY > mouseY && fromX < mouseX && toX > mouseX)) return Coord(-1, -1);
+
+	for (int i = -Map::VISION / 2; i < Map::VISION / 2; i++)
+		for (int j = -Map::VISION / 2; j < Map::VISION / 2; j++)
+		{
+			if (coordX + i < Map::MAP_SIZE && coordX + i >= 0 && coordY + j < Map::MAP_SIZE && coordY + j >= 0)
+			{
+				if (mouseX > d * (float)i && mouseX < d * (float)i + d && mouseY > d * (float)j && mouseY < d * (float)j + d)
+				{
+					return Coord(coordX + i, coordY + j);
+				}
+			}
+		}
+	return Coord(-1, -1);
+}
+
+void printText(std::string text, float x, float y)
+//ќт -1 до 1 указывать.
+{
+	float resizeCoeff = 2.0f;
+	float k = (float)Map::w / (float)Map::h;
+	float h = (x / k + 1.0f) * (Map::w / 2.0f);
+	float w = (1.0f - y) * (Map::h / 2.0f);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, Map::w, Map::h, 0, -1, 1);
+	const char* c = (text.c_str());
+	char* cString = new char[text.size() + 1];
+	int i = 0;
+	while (*c)
+	{
+		cString[i] = *(c++);
+		i++;
+	}
+	cString[i] = '\0';
+	glScalef(resizeCoeff, resizeCoeff, 1.0f);
+	printString(h / resizeCoeff, w / resizeCoeff, cString, 1.0f, 1.0f, 1.0f);
+	delete[] cString;
+	glPopMatrix();
+}
+
+void showInfo(std::string&& info)
+{
+	if (Map::info.x < 0 || Map::info.y < 0) return;
+	printText(info, -0.75, -0.75);
 }
 
 void chooseItemColor(Item* item)
@@ -253,12 +356,24 @@ void drawCharacteristics()
 	float otstup = 0.1f;
 	glColor3f(1.0f, 1.0f, 1.0f);
 	drawSquare(size / 2.0f, -1.0f + otstup, 1.0f - size);
+	printText(Map::player.getLvlString(), -1.0f + otstup, 1.0f - size);
 	glColor3f(0.0f, 1.0f, 0.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size/4.0f) * 1.0f, 1.0f - size + size / 4.0f); //AGIL
+	printText(Map::player.getAgilityString(), -1.0f + size + (otstup + size / 4.0f) * 1.0f, 1.0f - size + size / 4.0f);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f); //POW
+	printText(Map::player.getPowerString(), -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f);
 	glColor3f(0.0f, 0.0f, 1.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f); //INT
+	printText(Map::player.getIntelligenceString(), -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f);
+
+	std::string protection = ""; std::string dmg = "";
+	protection.append("P: ");
+	protection.append(Map::player.getProtectionString());
+	dmg.append("D: ");
+	dmg.append(Map::player.getDmgString());
+	printText(protection, -1.0f + otstup, 1.0f - size - 0.03f);
+	printText(dmg, -1.0f + otstup, 1.0f - size - 0.06f);
 }
 
 void drawHealthBar()
@@ -383,7 +498,7 @@ void move(int& x, int& y)
 			}
 		} } }
 		nextC = &Map::map[mapX + 1][mapY];
-		nextE = &Map::map[mapX + 1][mapY];
+		nextE = &Map::enemys[mapX + 1][mapY];
 		c = Coord(mapX + 1, mapY);
 		if (GetKeyState(VK_RIGHT) < 0) { if (mapX != Map::MAP_SIZE - 1) { if(*nextC != '#') {
 			isPressed = true;
@@ -426,7 +541,7 @@ void botMove(Enemy& enemy)
 	//if(Map::enemys[enemy.getCoord().x][enemy.getCoord().y]);
 	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = '-';
 	if (enemy.getHp() <= 0) return;
-	enemy.goToPlayer(Map::player, Map::MAP_SIZE);
+	enemy.goToPlayer(Map::player, Map::MAP_SIZE, Map::map, Map::enemys);
 	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = 'e';
 }
 //---------------------------------------------------------//
@@ -456,41 +571,39 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		}
 	//TEST!!!
 	//for(int i = 0; i < Map::MAP_SIZE; i++)
-	map[4][7] = '#';
-	map[4][6] = '#';
-	map[4][5] = '#';
-	map[4][4] = '!';
-	map[3][4] = '!';
+	map[1][4] = '#';
+	map[2][4] = '#';
+	map[3][4] = '#';
+	map[0][4] = '#';
 	map[4][3] = '#';
-	map[4][2] = '#';
+	map[4][2] = '!';
 	map[4][1] = '#';
 	map[4][0] = '#';
 	map[3][0] = 'c';
 	map[2][0] = 'c';
 	map[1][0] = 'c';
-	Coord c(4, 4);
-	Coord c1(3, 4);
+	Coord dr(4, 2);
 	Coord ch(3, 0);
 	Coord ch1(2, 0);
 	Coord ch2(1, 0);
-	Environment* a = new Door(c, true, 128);
-	Environment* b = new Door(c1, false, 1);
 	Item item(masterkey);
-	Weapon weapon(30);
-	Weapon weapon1(70);
+	Potion potion(50, hp);
+	EnchantedArtifactWeapon weapon1(70, 4, 0, 0, 20, 10, 2.0f, zombie);
+	Door* door = new Door(dr, false, 1);
 	Chest* chest = new Chest(ch, item, false, 1);
-	Chest* chest1 = new Chest(ch1, weapon, false, 4);
+	Chest* chest1 = new Chest(ch1, potion, false, 4);
 	Chest* chest2 = new Chest(ch2, weapon1, true, 4);
-	Map::player.setAgility(8);
-	Environment::getMap()->emplace(std::pair<int, int>(c.x, c.y), a);
-	Environment::getMap()->emplace(std::pair<int, int>(c1.x, c1.y), b);
-	Environment::getMap()->emplace(std::pair<int, int>(ch.x, ch.y), chest);
-	Environment::getMap()->emplace(std::pair<int, int>(ch1.x, ch1.y), chest1);
-	Environment::getMap()->emplace(std::pair<int, int>(ch2.x, ch2.y), chest2);
+	Map::player.setAgility(3);
+	//Environment::getMap()->emplace(std::pair<int, int>(ch.x, ch.y), chest);
+	//Environment::getMap()->emplace(std::pair<int, int>(ch1.x, ch1.y), chest1);
+	//Environment::getMap()->emplace(std::pair<int, int>(ch2.x, ch2.y), chest2);
 
-	Coord z(1, 5);
-	Enemy enemy(100, 30, 30, 5, zombie, z);
-	enemys[1][5] = 'e';
+	Coord z(9, 9);
+	Coord z1(9, 0);
+	Enemy enemy(100, 33, 90, 5, zombie, z);
+	Enemy enemy1(100, 33, 90, 5, zombie, z1);
+	enemys[9][0] = 'e';
+	enemys[9][9] = 'e';
 	//TEST!!!
 	/* register window class */
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -529,6 +642,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	/* enable OpenGL for the window */
 	EnableOpenGL(hwnd, &hDC, &hRC);
 
+	gameInit();
 	/* program main loop */
 	while (!bQuit && Map::player.getHp() > 0)
 	{
@@ -565,6 +679,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				glScalef(2.0f, 2.0f, 1.0f);
 			glPopMatrix();
 			drawHud();
+			Enemy* infoEnemy = Enemy::getEnemy(Map::info.x, Map::info.y);
+			if(infoEnemy != nullptr) 
+				showInfo(infoEnemy->getString());
 			//-----------------------------------------------------------------------
 			SwapBuffers(hDC);
 			//-----------------------------------------------------------------------LOGIC
@@ -574,10 +691,18 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			}
 			else
 			{
-				Sleep(500);
-				botMove(enemy);
-				if (enemy.getMovepoints() <= 0)
-					Map::player.setMovepoints();
+				
+				Sleep(50);
+				bool isAll = false;
+				for (auto i = Enemy::getEnemys().begin(); i != Enemy::getEnemys().end(); i++)
+				{
+					botMove(**i);
+					if ((*i)->getMovepoints() <= 0)
+						isAll = true;
+					else isAll = false;
+				}
+				//≈сли все боты подвигались даем игроку мувпоинты.
+				if(isAll) Map::player.setMovepoints();
 			}
 			//-----------------------------------------------------------------------GRAPHICS
 			Sleep(1);
@@ -597,6 +722,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	float wCoord, hCoord;
 	float k = Map::w / (float)Map::h;
+	float d = 2.0f / Map::VISION;
 	int index;
 	switch (uMsg)
 	{
@@ -622,6 +748,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		k = w / (float)h;
 		glLoadIdentity();
 		glOrtho(-k, k, -1, 1, -1, 1);
+		break;
+	case WM_MOUSEMOVE:
+		wCoord = (((float)LOWORD(lParam) * (2.0f) / (float)Map::w - 1.0f) * k + d / 2) * 2.0f;
+		hCoord = ((-(float)HIWORD(lParam) * (2.0f) / (float)Map::h + 1.0f) + d / 2) * 2.0f;
+		//“акие преобразовани€ из-за того что мы в мейне скейл и транс делаем с картой чтобы она в два раза меньше отображалась.
+		Map::info = mapInfo(Map::player.getCoord().x, Map::player.getCoord().y, wCoord, hCoord, d);
 		break;
 	case WM_DESTROY:
 		return 0;
