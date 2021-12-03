@@ -58,7 +58,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline int getHp() const { return hp; }
 		inline int getMaxHp() const { return maxHp; }
 		virtual inline int getDamage() const { return damage; }
-		inline int getProtection() const { return protection; }
+		virtual inline int getProtection() const { return protection; }
 		inline int getExp() const { return exp; }
 		inline int getMovepoints() const { return movepoints; }
 		inline CreatureType getType() const { return type; }
@@ -104,6 +104,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline void setItems(int items) { this->items = items; }
 		inline int getItems() const { return items; }
 		int getAgility() const;
+		int getProtection() const override;
 		int getPower() const;
 		int getIntelligence() const;
 		int getDamage() const override;
@@ -117,6 +118,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		std::string getIntelligenceString();
 		std::string getProtectionString();
 		std::string getDmgString();
+		std::string getMovepointsString();
 		void pickup(Item* item);
 		void upLvl();
 		void upStats(Stat stat);

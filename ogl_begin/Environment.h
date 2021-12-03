@@ -23,6 +23,8 @@
 		static inline std::map<std::pair<int, int>, Environment*>* getMap() { return &environmentOnMap; }
 		inline Coord* getCoord() { return &coord; }
 		virtual inline void iterate(Player& player) {}
+		static Environment* getEnvironment(int x, int y);
+		virtual std::string getString();
 	};
 
 	class Chest : public Environment
@@ -34,6 +36,7 @@
 		inline Chest(Coord& coord, Item& item, bool isClosed, int lvl) : Environment(coord, isClosed), item(&item), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
 		inline ~Chest() { /*if (item != nullptr) delete item;*/ }
 		void iterate(Player& player) override;
+		std::string getString() override;
 	};
 
 	class Door : public Environment
@@ -45,4 +48,5 @@
 		inline ~Door() {}
 	
 		void iterate(Player& player) override;
+		std::string getString() override;
 	};

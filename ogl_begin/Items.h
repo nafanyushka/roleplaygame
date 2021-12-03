@@ -19,6 +19,7 @@
 		inline ItemType getType() { return itemType; }
 		virtual inline void operator = (const Item& item) { this->itemType = item.itemType; }
 
+		virtual std::string getString();
 		//virtual void iterate(Player& player);
 	};
 
@@ -32,6 +33,7 @@
 
 		inline EffectType getEffectType() { return type; }
 		inline int getEffect() const { return effect; }
+		std::string getString() override;
 	};
 
 	class Equipment
@@ -87,6 +89,7 @@
 		inline int getAgil() const override { return 0; }
 		inline int getInt() const override { return 0; }
 		inline int getPow() const override { return 0; }
+		std::string getString() override;
 	protected:
 		inline Weapon(int dmg, bool ench) : Item(equipment), damage(dmg), Equipment(), isEnchanted(ench) {}
 		inline Weapon(bool ench) : Item(equipment), Equipment(), isEnchanted(ench) {}
@@ -103,6 +106,19 @@
 		inline int getAgil() const override { return 0; }
 		inline int getInt() const override { return 0; }
 		inline int getPow() const override { return 0; }
+		std::string getString() override;
+	};
+
+	class ArtifactProtection : public Protection, public Artifact
+	{
+	public:
+		inline ArtifactProtection(EquipmentType type, int prot, int da, int dp, int di, int dd, int dprot) : Protection(type, prot), Artifact(da, dp, di, dd, dprot) {}
+		inline int getProtection() const override { return Protection::getProtection() + getDCharacteristics()[PROT]; }
+		inline int getDmg() const override { return getDCharacteristics()[DMG]; }
+		inline int getAgil() const override { return getDCharacteristics()[AGIL]; }
+		inline int getInt() const override { return getDCharacteristics()[INT]; }
+		inline int getPow() const override { return getDCharacteristics()[POW]; }
+		std::string getString() override;
 	};
 
 	class ArtifactWeapon : public virtual Weapon, public Artifact
@@ -117,6 +133,7 @@
 		inline int getAgil() const override { return getDCharacteristics()[AGIL]; }
 		inline int getInt() const override { return getDCharacteristics()[INT]; }
 		inline int getPow() const override { return getDCharacteristics()[POW]; }
+		std::string getString() override;
 	};
 
 	class Enchantment
@@ -135,6 +152,7 @@
 	public:
 		inline EnchantedWeapon(int dmg, float k, CreatureType gainAgainst) : Weapon(dmg, true), Enchantment(abs(k), gainAgainst) {}
 		virtual int getDmgTo(CreatureType creature);
+		std::string getString() override;
 	protected:
 		inline EnchantedWeapon(float k, CreatureType gainAgainst) : Weapon(true), Enchantment(abs(k), gainAgainst) {}
 	};
@@ -151,4 +169,5 @@
 		inline int getInt() const override { return getDCharacteristics()[INT]; }
 		inline int getPow() const override { return getDCharacteristics()[POW]; }
 		int getDmgTo(CreatureType creature) override;
+		std::string getString() override;
 	};

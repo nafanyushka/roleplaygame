@@ -20,6 +20,7 @@ namespace Map
 	int floor[MAP_SIZE][MAP_SIZE];
 	char enemys[MAP_SIZE][MAP_SIZE];
 	Coord info(-1, -1);
+	int inventoryInfo = -1;
 	int w, h;
 	int watchingIndex = 0;
 	float fading = 0.0f;
@@ -91,7 +92,7 @@ void drawSquare(float size, float x, float y)
 
 void drawInfoSquare(float size, float x, float y, float fading)
 {
-	glColor4f(0, 1.0f, 1.0f, 1.0f * sin(fading / 4.0f) * 0.5f);
+	glColor4f(0, 1.0f, 1.0f, 1.0f * sin(fading / 4.0f) * 0.5f + 0.3f);
 	drawSquare(size, x, y);
 }
 
@@ -254,10 +255,9 @@ Coord mapInfo(int&& x, int&& y, float& mouseX, float& mouseY, float& d)
 	return Coord(-1, -1);
 }
 
-void printText(std::string text, float x, float y)
+void printText(std::string text, float x, float y, float resizeCoeff)
 //ќт -1 до 1 указывать.
 {
-	float resizeCoeff = 2.0f;
 	float k = (float)Map::w / (float)Map::h;
 	float h = (x / k + 1.0f) * (Map::w / 2.0f);
 	float w = (1.0f - y) * (Map::h / 2.0f);
@@ -281,8 +281,8 @@ void printText(std::string text, float x, float y)
 
 void showInfo(std::string&& info)
 {
-	if (Map::info.x < 0 || Map::info.y < 0) return;
-	printText(info, -0.75, -0.75);
+	if (Map::inventoryInfo < 0 && (Map::info.x < 0 || Map::info.y < 0)) return;
+	printText(info, -0.75, -0.75, 2.0f);
 }
 
 void chooseItemColor(Item* item)
@@ -356,24 +356,28 @@ void drawCharacteristics()
 	float otstup = 0.1f;
 	glColor3f(1.0f, 1.0f, 1.0f);
 	drawSquare(size / 2.0f, -1.0f + otstup, 1.0f - size);
-	printText(Map::player.getLvlString(), -1.0f + otstup, 1.0f - size);
+	printText(Map::player.getLvlString(), -1.0f + otstup, 1.0f - size, 2.0f);
 	glColor3f(0.0f, 1.0f, 0.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size/4.0f) * 1.0f, 1.0f - size + size / 4.0f); //AGIL
-	printText(Map::player.getAgilityString(), -1.0f + size + (otstup + size / 4.0f) * 1.0f, 1.0f - size + size / 4.0f);
+	printText(Map::player.getAgilityString(), -1.0f + size + (otstup + size / 4.0f) * 1.0f, 1.0f - size + size / 4.0f, 4.0f);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f); //POW
-	printText(Map::player.getPowerString(), -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f);
+	printText(Map::player.getPowerString(), -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f, 4.0f);
 	glColor3f(0.0f, 0.0f, 1.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f); //INT
-	printText(Map::player.getIntelligenceString(), -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f);
+	printText(Map::player.getIntelligenceString(), -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f, 4.0f);
 
-	std::string protection = ""; std::string dmg = "";
+	std::string protection = ""; std::string dmg = ""; std::string movepoints = "";
 	protection.append("P: ");
 	protection.append(Map::player.getProtectionString());
 	dmg.append("D: ");
 	dmg.append(Map::player.getDmgString());
-	printText(protection, -1.0f + otstup, 1.0f - size - 0.03f);
-	printText(dmg, -1.0f + otstup, 1.0f - size - 0.06f);
+	movepoints.append("MP: ");
+	movepoints.append(Map::player.getMovepointsString());
+
+	printText(protection, -1.0f + otstup, 1.0f - size - 0.03f, 2.0f);
+	printText(dmg, -1.0f + otstup, 1.0f - size - 0.06f, 2.0f);
+	printText(movepoints, -1.0f + otstup, 1.0f - size - 0.09f, 2.0f);
 }
 
 void drawHealthBar()
@@ -398,6 +402,24 @@ void drawHud()
 	drawInventory();
 	drawCharacteristics();
 	drawHealthBar();
+}
+
+void drawInfo()
+{
+	if (Map::inventoryInfo != -1)
+	{
+		if (Map::inventoryInfo < Map::player.getItems())
+			showInfo(Map::player.getInventory()[Map::inventoryInfo]->getString());
+	}
+	else
+	{
+		Enemy* infoEnemy = Enemy::getEnemy(Map::info.x, Map::info.y);
+		Environment* infoEnvironment = Environment::getEnvironment(Map::info.x, Map::info.y);
+		if (infoEnemy != nullptr)
+			showInfo(infoEnemy->getString());
+		if (infoEnvironment != nullptr)
+			showInfo(infoEnvironment->getString());
+	}
 }
 
 void move(int& x, int& y)
@@ -679,9 +701,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				glScalef(2.0f, 2.0f, 1.0f);
 			glPopMatrix();
 			drawHud();
-			Enemy* infoEnemy = Enemy::getEnemy(Map::info.x, Map::info.y);
-			if(infoEnemy != nullptr) 
-				showInfo(infoEnemy->getString());
+			drawInfo();
 			//-----------------------------------------------------------------------
 			SwapBuffers(hDC);
 			//-----------------------------------------------------------------------LOGIC
@@ -693,13 +713,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			{
 				
 				Sleep(50);
-				bool isAll = false;
+				bool isAll = true;
 				for (auto i = Enemy::getEnemys().begin(); i != Enemy::getEnemys().end(); i++)
 				{
 					botMove(**i);
-					if ((*i)->getMovepoints() <= 0)
-						isAll = true;
-					else isAll = false;
+					if ((*i)->getMovepoints() > 0)
+						isAll = false;
 				}
 				//≈сли все боты подвигались даем игроку мувпоинты.
 				if(isAll) Map::player.setMovepoints();
@@ -750,8 +769,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		glOrtho(-k, k, -1, 1, -1, 1);
 		break;
 	case WM_MOUSEMOVE:
-		wCoord = (((float)LOWORD(lParam) * (2.0f) / (float)Map::w - 1.0f) * k + d / 2) * 2.0f;
-		hCoord = ((-(float)HIWORD(lParam) * (2.0f) / (float)Map::h + 1.0f) + d / 2) * 2.0f;
+		wCoord = ((float)LOWORD(lParam) * 2.0f / (float)Map::w - 1.0f) * k;
+		hCoord = (-(float)HIWORD(lParam) * (2.0f) / (float)Map::h + 1.0f);
+		Map::inventoryInfo = tapOnInventory(wCoord, hCoord);
+
+		wCoord = (wCoord + d / 2) * 2.0f;
+		hCoord = (hCoord + d / 2) * 2.0f;
 		//“акие преобразовани€ из-за того что мы в мейне скейл и транс делаем с картой чтобы она в два раза меньше отображалась.
 		Map::info = mapInfo(Map::player.getCoord().x, Map::player.getCoord().y, wCoord, hCoord, d);
 		break;

@@ -1,5 +1,6 @@
 #include "Environment.h"
 #include <ctime>
+#include <string>
 	std::map<std::pair<int, int>, Environment*> Environment::environmentOnMap;
 
 	void Environment::clearMap()
@@ -9,6 +10,17 @@
 			Environment* point = it->second;
 			delete point;
 		}
+	}
+
+	Environment* Environment::getEnvironment(int x, int y)
+	{
+		return Environment::getMap()->find(std::pair<int, int>(x, y)) == Environment::getMap()->end() ? nullptr : Environment::getMap()->find(std::pair<int, int>(x, y))->second;
+	}
+
+	std::string Environment::getString()
+	{
+		std::string string = "Environment";
+		return string;
 	}
 
 	void Chest::iterate(Player& player)
@@ -51,6 +63,16 @@
 		}
 	}
 
+	std::string Chest::getString()
+	{
+		std::string string = "Chest: ";
+		string.append(std::to_string(lvl));
+		string.append("; ");
+		string.append(getStatus() == false ? "opened; " : "closed; ");
+		string.append(item == nullptr ? "empty." : "item inside.");
+		return string;
+	}
+
 	void Door::iterate(Player& player)
 	{
 		if (getStatus())
@@ -74,4 +96,13 @@
 				}
 			}
 		}
+	}
+
+	std::string Door::getString()
+	{
+		std::string string = "Door: ";
+		string.append(std::to_string(lvl));
+		string.append("; ");
+		string.append(getStatus() == false ? "opened." : "closed.");
+		return string;
 	}

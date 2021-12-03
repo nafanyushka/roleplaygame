@@ -129,6 +129,16 @@ int Player::getAgility() const
 	return resultAgility;
 }
 
+int Player::getProtection() const
+{
+	int prot = Creature::getProtection();
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		prot += equipment[i] == nullptr ? 0 : equipment[i]->getProtection();
+	}
+	return prot;
+}
+
 int Player::getPower() const
 {
 	int resultPower = power;
@@ -187,6 +197,11 @@ std::string Player::getProtectionString()
 std::string Player::getDmgString()
 {
 	return std::to_string(getDamage());
+}
+
+std::string Player::getMovepointsString()
+{
+	return std::to_string(getMovepoints());
 }
 
 void Player::pickup(Item* item)
