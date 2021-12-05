@@ -139,7 +139,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		{
 			enemys.push_back(this);
 		}
-		void goToPlayer(Player& player, const int& mapSize, char( *map )[Map::MAP_SIZE], char ( *enemyMap )[Map::MAP_SIZE]);
+		Direction* goToPlayer(Player& player, const int& mapSize, char( *map )[Map::MAP_SIZE], char ( *enemyMap )[Map::MAP_SIZE], int& pathSize);
 		static inline std::list<Enemy*>& getEnemys() { return enemys; }
 		static Enemy* getEnemy(int x, int y);
 	};

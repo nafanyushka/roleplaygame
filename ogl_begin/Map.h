@@ -56,6 +56,6 @@ enum EffectType
 
 namespace Map
 {
-	const int VISION = 16;
+	const int VISION = 8;
 	const int MAP_SIZE = 10;
 }

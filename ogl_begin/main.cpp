@@ -1,32 +1,6 @@
-#include <windows.h>
-#include <gl/gl.h>
-#include "Creatures.h"
-#include "Environment.h"
-#include "Map.h"
-#include "library/stb_easy_font.h"
+#include "main.h"
 #pragma comment(lib, "opengl32.lib")
 
-LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
-void EnableOpenGL(HWND hwnd, HDC*, HGLRC*);
-void DisableOpenGL(HWND, HDC, HGLRC);
-
-//-------------------------VARIABLES---------------------------//
-namespace Map
-{
-	Player player(100, 30, 0, 0, humanic, Coord(getCoordPlane(0), getCoordPlane(0)));
-	//const int MAP_SIZE = SIZE;
-	bool isPressed = false;
-	char map[MAP_SIZE][MAP_SIZE];
-	int floor[MAP_SIZE][MAP_SIZE];
-	char enemys[MAP_SIZE][MAP_SIZE];
-	Coord info(-1, -1);
-	int inventoryInfo = -1;
-	int w, h;
-	int watchingIndex = 0;
-	float fading = 0.0f;
-	//FUN
-	float tetha = 0.0f;
-}
 //-------------------------------------------------------------//
 
 //-------------------------FUNCS---------------------------//
@@ -44,10 +18,29 @@ void printString(float x, float y, char* text, float r, float g, float b)
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
+void loadTexture(std::string path)
+{
+
+}
+
 void gameInit()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	using Map::humanTexture;
+	int w, h, cnt;
+	unsigned char* data = stbi_load("human.png", &w, &h, &cnt, 0);
+
+	glGenTextures(1, &humanTexture);
+	glBindTexture(GL_TEXTURE_2D, humanTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, cnt == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	stbi_image_free(data);
+	
 }
 
 void drawNazi(float size, float x, float y)
@@ -77,17 +70,39 @@ void drawNazi(float size, float x, float y)
 
 void drawSquare(float size, float x, float y)
 {
+	glDisable(GL_TEXTURE_2D);
+	float vertex[] = { x,y,0, x + size,y,0, x + size,y + size,0, x,y + size,0 };
+	
 	glPushMatrix();
-	glTranslatef(x, y, 0);
-	glBegin(GL_TRIANGLES);
-		glVertex2f(0.0f, 0.0f);
-		glVertex2f(size, 0.0f);
-		glVertex2f(0.f, size);
-		glVertex2f(0.f, size);
-		glVertex2f(size, 0.0f);
-		glVertex2f(size, size);
-	glEnd();
+	glEnableClientState(GL_VERTEX_ARRAY);
+
+	glVertexPointer(3, GL_FLOAT, 0, vertex);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
+}
+
+void drawCreature(float size, float x, float y, Creature* creature)
+{
+	float vertex[] = { x,y,0, x + size,y,0, x + size,y + size,0, x,y + size,0 };
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, Map::humanTexture);
+
+	glColor3f(1.0f, 1.0f, 1.0f);
+	glPushMatrix();
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	glVertexPointer(3, GL_FLOAT, 0, vertex);
+	glTexCoordPointer(2, GL_FLOAT, 0, Map::textureMap);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glPopMatrix();
+	
+	glDisable(GL_TEXTURE_2D);
 }
 
 void drawInfoSquare(float size, float x, float y, float fading)
@@ -355,7 +370,7 @@ void drawCharacteristics()
 	float size = 0.5f;
 	float otstup = 0.1f;
 	glColor3f(1.0f, 1.0f, 1.0f);
-	drawSquare(size / 2.0f, -1.0f + otstup, 1.0f - size);
+	drawCreature(size / 2.0f, -1.0f + otstup, 1.0f - size, &Map::player);
 	printText(Map::player.getLvlString(), -1.0f + otstup, 1.0f - size, 2.0f);
 	glColor3f(0.0f, 1.0f, 0.0f);
 	drawSquare(size / 4.0f, -1.0f + size + (otstup + size/4.0f) * 1.0f, 1.0f - size + size / 4.0f); //AGIL
@@ -558,13 +573,62 @@ void move(int& x, int& y)
 	Map::player.setCoord(Coord(x, y));
 }
 
-void botMove(Enemy& enemy)
+void botsMove()
 {
 	//if(Map::enemys[enemy.getCoord().x][enemy.getCoord().y]);
-	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = '-';
+	/*Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = '-';
 	if (enemy.getHp() <= 0) return;
-	enemy.goToPlayer(Map::player, Map::MAP_SIZE, Map::map, Map::enemys);
-	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = 'e';
+	enemy.goToPlayer(Map::player, Map::MAP_SIZE, Map::map, Map::enemys, Map::pathSize);
+	Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = 'e';*/
+
+
+	if (Map::botLogicIterator != Enemy::getEnemys().end())
+	{
+		using Map::botLogicIterator;
+		if ((*botLogicIterator)->getHp() <= 0) 
+		{
+			botLogicIterator++;
+		}
+		else if (Map::pathToPlayer == nullptr)
+		{
+			Map::pathToPlayer = (*botLogicIterator)->goToPlayer(Map::player, Map::MAP_SIZE, Map::map, Map::enemys, Map::pathSize);
+			if (Map::pathToPlayer == nullptr) //МОЖЕТ БЫТЬ АТАКУЕТ ЗНАЧИТ
+			{
+				if ((*botLogicIterator)->getMovepoints() <= 0)
+					botLogicIterator++;
+				else Map::pathI = 0;
+			}
+			else Map::pathI = 0;
+		}
+		else
+		{
+			if (Map::pathI < Map::pathSize)
+			{
+				Map::enemys[(*botLogicIterator)->getCoord().x][(*botLogicIterator)->getCoord().y] = '-';
+				(*botLogicIterator)->move(Map::pathToPlayer[Map::pathI], Map::MAP_SIZE);
+				Map::enemys[(*botLogicIterator)->getCoord().x][(*botLogicIterator)->getCoord().y] = 'e';
+				Map::pathI++;
+			}
+			else
+			{
+				Map::pathI = 0;
+				Map::pathSize = 0;
+				delete[] Map::pathToPlayer;
+				Map::pathToPlayer = nullptr;
+			}
+		}
+	}
+	/*for (auto i = Enemy::getEnemys().begin(); i != Enemy::getEnemys().end(); i++)
+	{
+		botMove(**i);
+		if ((*i)->getMovepoints() > 0)
+			isAll = false;
+	}*/
+	//Если все боты подвигались даем игроку мувпоинты.
+	else {
+		Map::botLogicIterator = Enemy::getEnemys().begin();
+		Map::player.setMovepoints();
+	}
 }
 //---------------------------------------------------------//
 
@@ -652,8 +716,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		1080,
-		1080,
+		980,
+		980,
 		NULL,
 		NULL,
 		hInstance,
@@ -688,17 +752,25 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			int playerX = Map::player.getCoord().x, playerY = Map::player.getCoord().y;
 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
-			
+
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, Map::humanTexture);
 			//-----------------------------------------------------------------------GRAPHICS
 			glPushMatrix();
+			/*glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);*/
 				glTranslatef(-d / 2, -d / 2, 0.0f);
 				glScalef(0.5f, 0.5f, 1.0f);
 				float x = 0.0f + (float)playerX * d, y = 0.0f + (float)playerY * d;
 				glColor3f(1.0f, 1.0f, 1.0f);
 				see(playerX, playerY, d);
-				drawSquare(d, 0.0f, 0.0f); //PLAYER
+				drawCreature(d, 0.0f, 0.0f, &Map::player); //PLAYER
+				glColor3f(1.0f, 1.0f, 1.0f);
+				//glTexCoordPointer(2, GL_FLOAT, 0, Map::textureMap);
 				//drawNazi(0.1f, 0.25f, 0.25f);
 				glScalef(2.0f, 2.0f, 1.0f);
+				/*glDisableClientState(GL_VERTEX_ARRAY);
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);*/
 			glPopMatrix();
 			drawHud();
 			drawInfo();
@@ -712,16 +784,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			else
 			{
 				
-				Sleep(50);
-				bool isAll = true;
-				for (auto i = Enemy::getEnemys().begin(); i != Enemy::getEnemys().end(); i++)
-				{
-					botMove(**i);
-					if ((*i)->getMovepoints() > 0)
-						isAll = false;
-				}
-				//Если все боты подвигались даем игроку мувпоинты.
-				if(isAll) Map::player.setMovepoints();
+				Sleep(100);
+				botsMove();
 			}
 			//-----------------------------------------------------------------------GRAPHICS
 			Sleep(1);

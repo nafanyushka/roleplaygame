@@ -53,7 +53,7 @@ ItemMassive* Creature::hit(Creature& creature)
 		movepoints--;
 		ItemMassive* im = nullptr;
 		if (creature.hp <= 0)
-		{
+		{	
 			this->exp += creature.exp;
 		}
 		return im;
@@ -623,47 +623,35 @@ Direction* getPath(int& fromX, int& fromY, int& toX, int& toY, const int& movepo
 	return path;
 }
 
-void Enemy::goToPlayer(Player& player, const int& mapSize, char(*map)[Map::MAP_SIZE], char(*enemyMap)[Map::MAP_SIZE])
+Direction* Enemy::goToPlayer(Player& player, const int& mapSize, char(*map)[Map::MAP_SIZE], char(*enemyMap)[Map::MAP_SIZE], int& pathSize)
 {
 	int pX = getCoordMap(player.getCoord().x), pY = getCoordMap(player.getCoord().y);
+	if (abs(pX - getCoord().x) <= 1 && abs(pY - getCoord().y) <= 1 && getMovepoints() > 0)
+	{
+		hit(player);
+		return nullptr;
+	}
+
 	if (abs(pX - getCoord().x) >= Map::VISION / 2 || abs(pY - getCoord().y) >= Map::VISION / 2)
 	{
 		setMovepoints(0);
-		return;
+		return nullptr;
 	}
 
 	if (getMovepoints() <= 0)
 	{
 		setMovepoints();
-		return;
-	}
-
-
-	if (abs(pX - getCoord().x) <= 1 && abs(pY - getCoord().y) <= 1)
-	{
-		hit(player);
-		return;
+		return nullptr;
 	}
 	
 	char** movementMap = createMovementMap(mapSize, map, enemyMap);
 
 	Coord enemyCoord = this->getCoord();
-	int pathSize;
 	Direction* path = getPath(enemyCoord.x, enemyCoord.y, pX, pY, getMovepoints(), movementMap, mapSize, pathSize);
 	if (path == nullptr)
-	{
 		setMovepoints(0);
-	}
-	else
-	{
-		for (int i = 0; i < pathSize; i++)
-		{
-			move(path[i], mapSize);
-		}
-		delete[] path;
-	}
-
 	deleteMovementMap(movementMap, mapSize);
+	return path;
 	/*if (pX - getCoord().x > 0) 
 	{ 
 		move(right, mapSize); 
