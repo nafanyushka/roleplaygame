@@ -27,6 +27,8 @@
 	{
 		if (item == nullptr)
 			return;
+		if (player.getItems() >= Creature::getInventorySize())
+			return;
 		if (getStatus())
 		{
 			for (int i = 0; i < player.getItems(); i++)
@@ -34,7 +36,7 @@
 				if (player.getInventory()[i]->getType() == ItemType::masterkey)
 				{
 					float chance = lvl == 0 ? 100 : 100.0f / (float)lvl;
-					float personalChance = (int)((float)(rand() % 100) / (float)player.getAgility());
+					float personalChance = (int)((float)(rand() % 100) / ((float)player.getAgility() / 3.0f));
 					if (personalChance <= (int)chance) {
 						//player.dropItem(i);
 						setStatus(false);

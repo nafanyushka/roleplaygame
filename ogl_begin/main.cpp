@@ -18,21 +18,11 @@ void printString(float x, float y, char* text, float r, float g, float b)
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-void loadTexture(std::string path)
+void loadTexture(const char*&& path, unsigned int& texture)
 {
-
-}
-
-void gameInit()
-{
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	using Map::humanTexture;
 	int w, h, cnt;
-	unsigned char* data = stbi_load("human.png", &w, &h, &cnt, 0);
-
-	glGenTextures(1, &humanTexture);
-	glBindTexture(GL_TEXTURE_2D, humanTexture);
+	unsigned char* data = stbi_load(path, &w, &h, &cnt, 0); glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -40,7 +30,34 @@ void gameInit()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, cnt == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	stbi_image_free(data);
-	
+}
+
+void gameInit()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	loadTexture("graphics/human.png", Map::humanTexture);
+	loadTexture("graphics/bandit.png", Map::banditTexture);
+	loadTexture("graphics/zombie.png", Map::zombieTexture);
+	loadTexture("graphics/zoo.png", Map::zooTexture);
+	loadTexture("graphics/demon.png", Map::demonicTexture);
+	loadTexture("graphics/icy.png", Map::icyTexture);
+	loadTexture("graphics/wall.png", Map::wallTexture);
+	loadTexture("graphics/chest.png", Map::chestTexture);
+	loadTexture("graphics/closedChest.png", Map::closedChestTexture);
+	loadTexture("graphics/closedDoor.png", Map::closedDoorTexture);
+	loadTexture("graphics/door.png", Map::doorTexture);
+	loadTexture("graphics/power.png", Map::powerTexture);
+	loadTexture("graphics/intelligence.png", Map::intelligenceTexture);
+	loadTexture("graphics/agility.png", Map::agilityTexture);
+	loadTexture("graphics/sword.png", Map::swordTexture);
+	loadTexture("graphics/potion.png", Map::potionTexture);
+	loadTexture("graphics/masterkey.png", Map::masterkeyTexture);
+	loadTexture("graphics/bib.png", Map::bibTexture);
+	loadTexture("graphics/helmet.png", Map::helmetTexture);
+	loadTexture("graphics/boots.png", Map::bootsTexture);
+	loadTexture("graphics/pants.png", Map::pantsTexture);
+	loadTexture("graphics/inventory.png", Map::inventoryTexture);
 }
 
 void drawNazi(float size, float x, float y)
@@ -83,12 +100,11 @@ void drawSquare(float size, float x, float y)
 	glPopMatrix();
 }
 
-void drawCreature(float size, float x, float y, Creature* creature)
+void drawTexturedSquare(float size, float x, float y, unsigned int texture)
 {
 	float vertex[] = { x,y,0, x + size,y,0, x + size,y + size,0, x,y + size,0 };
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, Map::humanTexture);
-
+	glBindTexture(GL_TEXTURE_2D, texture);
 	glColor3f(1.0f, 1.0f, 1.0f);
 	glPushMatrix();
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -101,13 +117,40 @@ void drawCreature(float size, float x, float y, Creature* creature)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
-	
+
 	glDisable(GL_TEXTURE_2D);
+}
+
+void drawCreature(float size, float x, float y, Creature* creature)
+{
+	switch (creature->getType())
+	{
+	case zombie:
+		drawTexturedSquare(size, x, y, Map::zombieTexture);
+		break;
+	case zoo:
+		drawTexturedSquare(size, x, y, Map::zooTexture);
+		break;
+	case icy:
+		drawTexturedSquare(size, x, y, Map::icyTexture);
+		break;
+	case demonic:
+		drawTexturedSquare(size, x, y, Map::demonicTexture);
+		break;
+	default:
+		drawTexturedSquare(size, x, y, Map::banditTexture);
+		break;
+	}
+}
+
+void drawPlayer(float size, float x, float y, Creature* creature)
+{
+	drawTexturedSquare(size, x, y, Map::humanTexture);
 }
 
 void drawInfoSquare(float size, float x, float y, float fading)
 {
-	glColor4f(0, 1.0f, 1.0f, 1.0f * sin(fading / 4.0f) * 0.5f + 0.3f);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f * sin(fading / 4.0f) * 0.5f - 0.05f);
 	drawSquare(size, x, y);
 }
 
@@ -138,7 +181,24 @@ int getCoordPlane(int coord)
 
 void drawEnemy(Enemy& enemy, float& d, int i, int j)
 {
-	drawRectangle(d, d * (float)enemy.getHp() / (float)enemy.getMaxHp(), d * (float)i, d * (float)j);
+	drawCreature(d, d * (float)i, d * (float)j, &enemy);
+}
+
+void drawWall(float& size, float x, float y)
+{
+	drawTexturedSquare(size, x, y, Map::wallTexture);
+}
+
+void drawChest(float& size, float x, float y, bool isClosed)
+{
+	if (isClosed) drawTexturedSquare(size, x, y, Map::closedChestTexture);
+	else drawTexturedSquare(size, x, y, Map::chestTexture);
+}
+
+void drawDoor(float& size, float x, float y, bool isClosed)
+{
+	if (isClosed) drawTexturedSquare(size, x, y, Map::closedDoorTexture);
+	else drawTexturedSquare(size, x, y, Map::doorTexture);
 }
 
 void see(int& x, int& y, float& d)
@@ -193,19 +253,15 @@ void see(int& x, int& y, float& d)
 				else if (place == '#')
 				{
 					glColor3f(0.5f, 0.5f, 0.3f);
-					drawSquare(d, d * (float)i, d * (float)j);
+					drawWall(d, d * (float)i, d * (float)j);
 				}
 				else if (place == '!')
 				{
-					if (Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus()) glColor3f(0.3f, 0.5f, 0.5f);
-					else glColor3f(0.1f, 0.1f, 0.8f);
-					drawSquare(d, d * (float)i, d * (float)j);
+					drawDoor(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus());
 				}
 				else if (place == 'c')
 				{
-					if (Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus()) glColor3f(0.35f, 0.2f, 0.09f);
-					else glColor3f(0.74f, 0.42f, 0.19f);
-					drawSquare(d, d * (float)i, d * (float)j);
+					drawChest(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus());
 				}
 				if (coordX + i == Map::info.x && coordY + j == Map::info.y)
 				{
@@ -214,7 +270,7 @@ void see(int& x, int& y, float& d)
 				}
 			}
 		}
-	glColor3f(1.0f, 1.0f, 1.0f);
+	glColor3f(0.0f, 0.0f, 0.0f);
 	for (int i = -1 * Map::VISION / 2; i < Map::VISION / 2 + 1; i++)
 	{
 		if (getCoordMap(y + i) > -1 && getCoordMap(y + i) < Map::MAP_SIZE + 1) {
@@ -296,39 +352,44 @@ void printText(std::string text, float x, float y, float resizeCoeff)
 
 void showInfo(std::string&& info)
 {
-	if (Map::inventoryInfo < 0 && (Map::info.x < 0 || Map::info.y < 0)) return;
+	if (Map::inventoryInfo < 0 && (Map::info.x < 0 || Map::info.y < 0) && Map::equipmentInfo < 0) return;
 	printText(info, -0.75, -0.75, 2.0f);
 }
 
-void chooseItemColor(Item* item)
+void drawPlayersEquipment(float size, float x, float y, Equipment* eq)
+{
+	switch ((eq)->getEquipmentType())
+	{
+	case weapon:
+		drawTexturedSquare(size, x, y, Map::swordTexture);
+		break;
+	case helmet:
+		drawTexturedSquare(size, x, y, Map::helmetTexture);
+		break;
+	case bib:
+		drawTexturedSquare(size, x, y, Map::bibTexture);
+		break;
+	case pants:
+		drawTexturedSquare(size, x, y, Map::pantsTexture);
+		break;
+	case boots:
+		drawTexturedSquare(size, x, y, Map::bootsTexture);
+		break;
+	}
+}
+
+void drawItem(float size, float x, float y, Item* item)
 {
 	switch (item->getType())
 	{
 	case ItemType::masterkey:
-		glColor3f(0.38f, 0.38f, 0.38f);
+		drawTexturedSquare(size, x, y, Map::masterkeyTexture);
 		break;
 	case ItemType::potion:
-		glColor3f(1.0f, 0.32f, 0.85f);
+		drawTexturedSquare(size, x, y, Map::potionTexture);
 		break;
 	case ItemType::equipment:
-		switch (dynamic_cast<Equipment*>(item)->getEquipmentType())
-		{
-		case weapon:
-			glColor3f(0.85f, 0.1f, 0.1f);
-			break;
-		case helmet:
-			glColor3f(0.66f, 0.77f, 0.74f);
-			break;
-		case bib:
-			glColor3f(0.44f, 0.57f, 0.54f);
-			break;
-		case pants:
-			glColor3f(0.38f, 0.47f, 0.45f);
-			break;
-		case boots:
-			glColor3f(0.31f, 0.38f, 0.36f);
-			break;	
-		}
+		drawPlayersEquipment(size, x, y, dynamic_cast<Equipment*>(item));
 		break;
 	}
 }
@@ -342,11 +403,12 @@ void drawInventory()
 	for (int i = 0; i < Player::getInventorySize(); i++)
 	{
 		glColor3f(0.0f, 1.0f, 1.0f);
-		drawSquare(squareSize, fromX, fromY + i * squareSize);
+		drawTexturedSquare(squareSize, fromX, fromY + i * squareSize, Map::inventoryTexture);
 		if (i < Map::player.getItems())
 		{
-			chooseItemColor(Map::player.getInventory()[i]);
-			drawSquare(squareSize / 2.0f, fromX + squareSize / 4.0f, fromY + i * squareSize + squareSize / 4.0f);
+			drawItem(squareSize / 2.0f, fromX + squareSize / 4.0f, fromY + i * squareSize + squareSize / 4.0f, Map::player.getInventory()[i]);
+			//glColor3f(1.0f, 1.0f, 1.0f);
+			//drawSquare(squareSize / 2.0f, fromX + squareSize / 4.0f, fromY + i * squareSize + squareSize / 4.0f);
 		}
 		glTranslatef(0.0f, 0.01f, 0.0f);
 	}
@@ -365,34 +427,58 @@ int tapOnInventory(float x, float y)
 	return -1;
 }
 
+void tapOnCharacteristics(float x, float y)
+{
+	float size = 0.5f;
+	float otstup = 0.1f;
+	if (x > -1.0f + size + (otstup + size / 4.0f) * 1.0f && x < size / 4.0f + -1.0f + size + (otstup + size / 4.0f) * 1.0f
+		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
+	{
+		Map::player.upStats(agil);
+	}
+	if (x > -1.0f + size + (otstup + size / 4.0f) * 2.0f && x < -1.0f + size + (otstup + size / 4.0f) * 2.0f + size / 4.0f
+		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
+	{
+		Map::player.upStats(power);
+	}
+	if (x > -1.0f + size + (otstup + size / 4.0f) * 3.0f && x < -1.0f + size + (otstup + size / 4.0f) * 3.0f + size / 4.0f 
+		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
+	{
+		Map::player.upStats(intel);
+	}
+}
+
 void drawCharacteristics()
 {
 	float size = 0.5f;
 	float otstup = 0.1f;
 	glColor3f(1.0f, 1.0f, 1.0f);
-	drawCreature(size / 2.0f, -1.0f + otstup, 1.0f - size, &Map::player);
+	drawPlayer(size / 2.0f, -1.0f + otstup, 1.0f - size, &Map::player);
 	printText(Map::player.getLvlString(), -1.0f + otstup, 1.0f - size, 2.0f);
-	glColor3f(0.0f, 1.0f, 0.0f);
-	drawSquare(size / 4.0f, -1.0f + size + (otstup + size/4.0f) * 1.0f, 1.0f - size + size / 4.0f); //AGIL
+	
+	drawTexturedSquare(size / 4.0f, -1.0f + size + (otstup + size/4.0f) * 1.0f, 1.0f - size + size / 4.0f, Map::agilityTexture); //AGIL
 	printText(Map::player.getAgilityString(), -1.0f + size + (otstup + size / 4.0f) * 1.0f, 1.0f - size + size / 4.0f, 4.0f);
-	glColor3f(1.0f, 0.0f, 0.0f);
-	drawSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f); //POW
+	
+	drawTexturedSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f, Map::powerTexture); //POW
 	printText(Map::player.getPowerString(), -1.0f + size + (otstup + size / 4.0f) * 2.0f, 1.0f - size + size / 4.0f, 4.0f);
-	glColor3f(0.0f, 0.0f, 1.0f);
-	drawSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f); //INT
+	
+	drawTexturedSquare(size / 4.0f, -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f, Map::intelligenceTexture); //INT
 	printText(Map::player.getIntelligenceString(), -1.0f + size + (otstup + size / 4.0f) * 3.0f, 1.0f - size + size / 4.0f, 4.0f);
 
-	std::string protection = ""; std::string dmg = ""; std::string movepoints = "";
+	std::string protection = ""; std::string dmg = ""; std::string movepoints = ""; std::string exp = "";
 	protection.append("P: ");
 	protection.append(Map::player.getProtectionString());
 	dmg.append("D: ");
 	dmg.append(Map::player.getDmgString());
 	movepoints.append("MP: ");
 	movepoints.append(Map::player.getMovepointsString());
-
+	exp.append("EXP: ");
+	exp.append(Map::player.getExpString());
+	
 	printText(protection, -1.0f + otstup, 1.0f - size - 0.03f, 2.0f);
 	printText(dmg, -1.0f + otstup, 1.0f - size - 0.06f, 2.0f);
 	printText(movepoints, -1.0f + otstup, 1.0f - size - 0.09f, 2.0f);
+	printText(exp, -1.0f + otstup, 1.0f - size - 0.12f, 2.0f);
 }
 
 void drawHealthBar()
@@ -412,11 +498,49 @@ void drawHealthBar()
 	glPopMatrix();
 }
 
+void drawEquipment()
+{
+	float size = 0.5f;
+	float otstup = 0.1f;
+	float startPosDrawingX = -1.0f + otstup, startPosDrawingY = 0.0f;
+	float squareSize = 0.15f;
+	glPushMatrix();
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		glColor3f(0.1f, 0.1f, 0.1f);
+		drawSquare(squareSize, startPosDrawingX, startPosDrawingY - (float)i * squareSize / 1.5f);
+		if (Map::player.getEquipment()[i] != nullptr)
+		{
+			drawPlayersEquipment(squareSize / 2.0f, startPosDrawingX + squareSize / 4.0f, startPosDrawingY - (float)i * squareSize / 1.5f + squareSize / 4.0f, Map::player.getEquipment()[i]);
+		}
+		glTranslatef(0, -0.1f, 0);
+	}
+	glPopMatrix();
+}
+
+int tapOnEquipment(float x, float y)
+{
+	float size = 0.5f;
+	float otstup = 0.1f;
+	float startPosDrawingX = -1.0f + otstup, startPosDrawingY = 0.0f;
+	float squareSize = 0.15f;
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		if (x > startPosDrawingX && x < startPosDrawingX + squareSize && y > startPosDrawingY - (float)i * squareSize / 1.5f && y < startPosDrawingY - (float)i * squareSize / 1.5f + squareSize)
+		{
+			return i;
+		}
+		y += 0.1f;
+	}
+	return -1;
+}
+
 void drawHud()
 {
 	drawInventory();
 	drawCharacteristics();
 	drawHealthBar();
+	drawEquipment();
 }
 
 void drawInfo()
@@ -425,6 +549,13 @@ void drawInfo()
 	{
 		if (Map::inventoryInfo < Map::player.getItems())
 			showInfo(Map::player.getInventory()[Map::inventoryInfo]->getString());
+	}
+	else if (Map::equipmentInfo != -1)
+	{
+		if (Map::player.getEquipment()[Map::equipmentInfo] != nullptr)
+		{
+			showInfo(dynamic_cast<Item*>(Map::player.getEquipment()[Map::equipmentInfo])->getString());
+		}
 	}
 	else
 	{
@@ -596,7 +727,7 @@ void botsMove()
 			{
 				if ((*botLogicIterator)->getMovepoints() <= 0)
 					botLogicIterator++;
-				else Map::pathI = 0;
+				else { Map::pathI = 0; Sleep(50); }
 			}
 			else Map::pathI = 0;
 		}
@@ -608,9 +739,11 @@ void botsMove()
 				(*botLogicIterator)->move(Map::pathToPlayer[Map::pathI], Map::MAP_SIZE);
 				Map::enemys[(*botLogicIterator)->getCoord().x][(*botLogicIterator)->getCoord().y] = 'e';
 				Map::pathI++;
+				Sleep(50);
 			}
 			else
 			{
+				if ((*botLogicIterator)->getMovepoints() <= 0) botLogicIterator++;
 				Map::pathI = 0;
 				Map::pathSize = 0;
 				delete[] Map::pathToPlayer;
@@ -656,40 +789,61 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			enemys[i][j] = '-';
 		}
 	//TEST!!!
-	//for(int i = 0; i < Map::MAP_SIZE; i++)
-	map[1][4] = '#';
+	// 
+	// 
+	createMap();
+	// 
+	// 
+
+	/*map[1][4] = '#';
 	map[2][4] = '#';
 	map[3][4] = '#';
 	map[0][4] = '#';
 	map[4][3] = '#';
+	map[4][4] = '#';
 	map[4][2] = '!';
 	map[4][1] = '#';
 	map[4][0] = '#';
 	map[3][0] = 'c';
 	map[2][0] = 'c';
 	map[1][0] = 'c';
+	map[1][3] = 'c';
+	map[0][3] = 'c';
+	map[2][3] = 'c';
+	map[3][3] = 'c';
 	Coord dr(4, 2);
 	Coord ch(3, 0);
 	Coord ch1(2, 0);
 	Coord ch2(1, 0);
+	Coord ch3(1, 3);
+	Coord ch4(2, 3);
+	Coord ch5(3, 3);
+	Coord ch6(0, 3);
 	Item item(masterkey);
 	Potion potion(50, hp);
-	EnchantedArtifactWeapon weapon1(70, 4, 0, 0, 20, 10, 2.0f, zombie);
-	Door* door = new Door(dr, false, 1);
+	EnchantedArtifactWeapon weapon1(10, 4, 0, 0, 0, 10, 2.0f, zombie);
+	ArtifactProtection helm(helmet, 5, 0, 3, 1, 10, 0);
+	Protection pan(pants, 5);
+	Protection bi(bib, 5);
+	Protection boo(boots, 5);
+	Door* door = new Door(dr, true, 3);
 	Chest* chest = new Chest(ch, item, false, 1);
 	Chest* chest1 = new Chest(ch1, potion, false, 4);
 	Chest* chest2 = new Chest(ch2, weapon1, true, 4);
+	Chest* chest3 = new Chest(ch3, helm, true, 3);
+	Chest* chest4 = new Chest(ch4, pan, true, 1);
+	Chest* chest5 = new Chest(ch5, bi, true, 1);
+	Chest* chest6 = new Chest(ch6, boo, true, 1);
 	Map::player.setAgility(3);
-	//Environment::getMap()->emplace(std::pair<int, int>(ch.x, ch.y), chest);
-	//Environment::getMap()->emplace(std::pair<int, int>(ch1.x, ch1.y), chest1);
-	//Environment::getMap()->emplace(std::pair<int, int>(ch2.x, ch2.y), chest2);
 
 	Coord z(9, 9);
 	Coord z1(9, 0);
 	Enemy enemy(100, 33, 90, 5, zombie, z);
 	Enemy enemy1(100, 33, 90, 5, zombie, z1);
 	enemys[9][0] = 'e';
-	enemys[9][9] = 'e';
+	enemys[9][9] = 'e';*/
+
+
 	//TEST!!!
 	/* register window class */
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -764,7 +918,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				float x = 0.0f + (float)playerX * d, y = 0.0f + (float)playerY * d;
 				glColor3f(1.0f, 1.0f, 1.0f);
 				see(playerX, playerY, d);
-				drawCreature(d, 0.0f, 0.0f, &Map::player); //PLAYER
+				drawPlayer(d, 0.0f, 0.0f, &Map::player); //PLAYER
 				glColor3f(1.0f, 1.0f, 1.0f);
 				//glTexCoordPointer(2, GL_FLOAT, 0, Map::textureMap);
 				//drawNazi(0.1f, 0.25f, 0.25f);
@@ -783,8 +937,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			}
 			else
 			{
-				
-				Sleep(100);
 				botsMove();
 			}
 			//-----------------------------------------------------------------------GRAPHICS
@@ -821,6 +973,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			Map::player.equip(index);
 		}
+		else
+		{
+			tapOnCharacteristics(wCoord, hCoord); //ПРОКАЧКА ХАРАКТЕРИСТИК
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		Sleep(10);
+		wCoord = ((float)LOWORD(lParam) * 2.0f / (float)Map::w - 1.0f) * k;
+		hCoord = (-(float)HIWORD(lParam) * (2.0f) / (float)Map::h + 1.0f);
+		index = tapOnInventory(wCoord, hCoord);
+		if (index != -1)
+		{
+			Map::player.dropItem(index);
+		}
+		else
+		{
+			index = tapOnEquipment(wCoord, hCoord);
+			Map::player.unequip(index);
+		}
 		break;
 	case WM_SIZE:
 		using Map::h;
@@ -835,8 +1006,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		wCoord = ((float)LOWORD(lParam) * 2.0f / (float)Map::w - 1.0f) * k;
 		hCoord = (-(float)HIWORD(lParam) * (2.0f) / (float)Map::h + 1.0f);
-		Map::inventoryInfo = tapOnInventory(wCoord, hCoord);
-
+		//ПОЛУЧАЕМ ИНДЕКСЫ:
+		Map::inventoryInfo = tapOnInventory(wCoord, hCoord); //О КАКОМ ИЗ ИНВЕНТОРЯ ИНФУ
+		Map::equipmentInfo = tapOnEquipment(wCoord, hCoord); //О КАКОМ ИЗ ЭКВИПЫ ИНФУ
 		wCoord = (wCoord + d / 2) * 2.0f;
 		hCoord = (hCoord + d / 2) * 2.0f;
 		//Такие преобразования из-за того что мы в мейне скейл и транс делаем с картой чтобы она в два раза меньше отображалась.

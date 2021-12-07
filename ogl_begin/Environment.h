@@ -16,7 +16,6 @@
 			//delete environmentOnMap;
 		}
 		inline Environment(Coord& c, bool status) : coord(c), status(status) { /*environmentOnMap = new std::map<std::pair<int, int>, Environment>;*/ }
-		//inline ~Environment() {}
 		static void clearMap();
 		inline bool getStatus() const { return status; }
 		inline void setStatus(bool status) { this->status = status; }
@@ -33,8 +32,8 @@
 		Item* item;
 		int lvl = 1;
 	public:
-		inline Chest(Coord& coord, Item& item, bool isClosed, int lvl) : Environment(coord, isClosed), item(&item), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
-		inline ~Chest() { /*if (item != nullptr) delete item;*/ }
+		inline Chest(Coord coord, Item* item, bool isClosed, int lvl) : Environment(coord, isClosed), item(item), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
+		inline ~Chest() { if (item != nullptr) delete item; }
 		void iterate(Player& player) override;
 		std::string getString() override;
 	};
@@ -44,9 +43,15 @@
 	private:
 		int lvl = 1;
 	public:
-		inline Door(Coord& coord, bool isClosed, int lvl) : Environment(coord, isClosed), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
-		inline ~Door() {}
+		inline Door(Coord coord, bool isClosed, int lvl) : Environment(coord, isClosed), lvl(lvl) { Environment::getMap()->emplace(std::pair<int, int>(coord.x, coord.y), this); }
+		virtual inline ~Door() {}
 	
 		void iterate(Player& player) override;
 		std::string getString() override;
+	};
+
+	class ExitDoor : public Door
+	{
+	public:
+		inline ExitDoor(Coord& coord) : Door(coord, true, 20) {}
 	};

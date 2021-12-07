@@ -1,9 +1,11 @@
 #include "Creatures.h"
 #include "Map.h"
-#include <math.h>
+#include <iostream>
 #include <string>
-#define ZOMBIE_MOVE 5
-#define HUMAN_MOVE 3
+#include <math.h>
+
+#define ZOMBIE_MOVE 2
+#define HUMAN_MOVE 4
 #define DEMON_MOVE 2
 #define ZOO_MOVE 5
 #define ICY_MOVE 7
@@ -47,17 +49,18 @@ void Creature::move(Direction vector, const int& mapSize)
 	}
 
 ItemMassive* Creature::hit(Creature& creature)
-	{
-		int dmg = getDamage() - creature.getProtection();
-		creature.hp -= dmg < 0 ? 0 : dmg;
-		movepoints--;
-		ItemMassive* im = nullptr;
-		if (creature.hp <= 0)
-		{	
-			this->exp += creature.exp;
-		}
-		return im;
+{
+	if (movepoints <= 0) return nullptr;
+	int dmg = getDamage() - creature.getProtection();
+	creature.hp -= dmg < 0 ? 0 : dmg;
+	movepoints--;
+	ItemMassive* im = nullptr;
+	if (creature.hp <= 0)
+	{	
+		this->exp += creature.exp;
 	}
+	return im;
+}
 
 void Creature::setMovepoints()
 	{
@@ -204,6 +207,16 @@ std::string Player::getMovepointsString()
 	return std::to_string(getMovepoints());
 }
 
+std::string Player::getExpString()
+{
+	std::string string = "";
+	string.append(std::to_string(getExp()));
+	string.append("/");
+	string.append(std::to_string((int)pow(2, lvl)));
+	
+	return string;
+}
+
 void Player::pickup(Item* item)
 	{
 		if (getItems() >= 10)
@@ -216,8 +229,8 @@ void Player::upLvl()
 	{
 		if (getExp() < (int)pow(2, lvl))
 			return;
-		lvlPoints += ++lvl;
-		setExp(getExp() - (int)pow(2, lvl));
+		lvlPoints += (++lvl) / 2;
+		setExp(getExp() - (int)pow(2, lvl - 1));
 	}
 
 void Player::upStats(Stat stat)
@@ -324,10 +337,21 @@ void Player::equip(int index)
 		}
 	}
 
+void Player::unequip(int index)
+{
+	if (index < 0 || index >= EQUIPMENT_SIZE) return;
+	if (equipment[index] == nullptr) return;
+	Equipment* disequipment = equipment[index];
+	equipment[index] = nullptr;
+	if (getItems() < getInventorySize())
+		pickup(dynamic_cast<Item*>(disequipment));
+}
+
 void Player::dropItem(int index)
 	{
 		if (index > getItems() || index < 0)
 			return;
+		delete getInventory()[index];
 		getInventory()[index] = getInventory()[getItems() - 1];
 		setItems(getItems() - 1);
 	}
@@ -355,7 +379,7 @@ void Player::move(Direction vector, const int& mapSize)
 ItemMassive* Player::hit(Creature& creature)
 {
 	int dmg = getDamageTo(creature.getType());
-	dmg = dmg > creature.getProtection() ? dmg - creature.getProtection() : 0;
+	dmg = dmg > (creature.getProtection() / getPower()) ? dmg - creature.getProtection() / getPower() : 0;
 	creature.setHp(creature.getHp() - dmg);
 	setMovepoints(getMovepoints() - 1);
 	ItemMassive* im = nullptr;
@@ -363,6 +387,7 @@ ItemMassive* Player::hit(Creature& creature)
 	{
 		setExp(getExp() + creature.getExp());
 	}
+	upLvl();
 	return im;
 }
 
@@ -626,19 +651,20 @@ Direction* getPath(int& fromX, int& fromY, int& toX, int& toY, const int& movepo
 Direction* Enemy::goToPlayer(Player& player, const int& mapSize, char(*map)[Map::MAP_SIZE], char(*enemyMap)[Map::MAP_SIZE], int& pathSize)
 {
 	int pX = getCoordMap(player.getCoord().x), pY = getCoordMap(player.getCoord().y);
-	if (abs(pX - getCoord().x) <= 1 && abs(pY - getCoord().y) <= 1 && getMovepoints() > 0)
-	{
-		hit(player);
-		return nullptr;
-	}
-
+	
 	if (abs(pX - getCoord().x) >= Map::VISION / 2 || abs(pY - getCoord().y) >= Map::VISION / 2)
 	{
 		setMovepoints(0);
 		return nullptr;
 	}
-
-	if (getMovepoints() <= 0)
+	
+	if (abs(pX - getCoord().x) <= 1 && abs(pY - getCoord().y) <= 1 && getMovepoints() > 0)
+	{
+		hit(player);
+		return nullptr;
+	}
+	
+	else if (getMovepoints() <= 0)
 	{
 		setMovepoints();
 		return nullptr;

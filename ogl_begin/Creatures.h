@@ -54,7 +54,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline void setCoord(Coord coord) { this->coord = coord; }
 		inline void setHp(int hp) { this->hp = hp; }
 		inline void setMaxHp(int hp) { maxHp = hp; }
-		inline int getInventorySize() const { return INVENTORY_SIZE; }
+		inline static int getInventorySize() { return INVENTORY_SIZE; }
 		inline int getHp() const { return hp; }
 		inline int getMaxHp() const { return maxHp; }
 		virtual inline int getDamage() const { return damage; }
@@ -89,7 +89,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline Player(int hp, int dmg, int pro, int exp, CreatureType t, Coord spawnCoord) : Creature(hp, dmg, pro, exp, t, spawnCoord), items(0)
 		{
 			inventory = new Item * [INVENTORY_SIZE];
-			equipment = new Equipment * [5];
+			equipment = new Equipment * [EQUIPMENT_SIZE];
 			for (int i = 0; i < INVENTORY_SIZE; i++) inventory[i] = nullptr;
 			for (int i = 0; i < 5; i++) equipment[i] = nullptr;
 			lvl = 1;
@@ -98,7 +98,19 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 			intelligence = 1;
 			power = 1;
 		}
-		inline ~Player() { delete[] inventory; delete[] equipment; }
+		inline ~Player() 
+		{
+			for (int i = 0; i < getItems(); i++)
+			{
+				delete inventory[i];
+			}
+			for (int i = 0; i < EQUIPMENT_SIZE; i++)
+			{
+				if (equipment[i] != nullptr) delete equipment[i];
+			}
+			delete[] inventory; 
+			delete[] equipment; 
+		}
 		inline Item** const& getInventory() const { return inventory; }
 		inline Equipment** const& getEquipment() const { return equipment; }
 		inline void setItems(int items) { this->items = items; }
@@ -119,12 +131,14 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		std::string getProtectionString();
 		std::string getDmgString();
 		std::string getMovepointsString();
+		std::string getExpString();
 		void pickup(Item* item);
 		void upLvl();
 		void upStats(Stat stat);
 		inline void setMovepoints(int mp) override { Creature::setMovepoints(mp); }
 		void setMovepoints() override;
 		void equip(int index);
+		void unequip(int index);
 		void dropItem(int index);
 		void move(Direction vector, const int& mapSize) override;
 		ItemMassive* hit(Creature& creature) override;
@@ -139,6 +153,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		{
 			enemys.push_back(this);
 		}
+		inline ~Enemy() {}
 		Direction* goToPlayer(Player& player, const int& mapSize, char( *map )[Map::MAP_SIZE], char ( *enemyMap )[Map::MAP_SIZE], int& pathSize);
 		static inline std::list<Enemy*>& getEnemys() { return enemys; }
 		static Enemy* getEnemy(int x, int y);
