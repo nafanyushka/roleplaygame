@@ -23,6 +23,48 @@
 		return string;
 	}
 
+	void Environment::saveToFile(std::ofstream& fout)
+	{
+		int size = getMap()->size();
+		fout.write((char*)&size, sizeof(int));
+		int count = 0;
+		for (auto i = getMap()->begin(); i != getMap()->end(); i++)
+		{
+			if (count == 31)
+				std::cout << "BRO" << std::endl;
+			(*i).second->save(fout);
+			count++;
+		}
+	}
+
+	void Environment::loadFromFile(std::ifstream& fin)
+	{
+		int size = 0;
+		fin.read((char*)&size, sizeof(int));
+		Environment* e = nullptr;
+		for (int i = 0; i < size; i++)
+		{
+			LoadingEnvironmentType let = LoadingEnvironmentType::exitdoor;
+			fin.read((char*)&let, sizeof(int));
+			switch (let)
+			{
+			case LoadingEnvironmentType::chest:
+				e = new Chest();
+				break;
+			case door:
+				e = new Door();
+				break;
+			case exitdoor:
+				e = new ExitDoor();
+				break;
+			}
+			if (i == 31)
+				std::cout << "BAN!" << std::endl;
+			e->load(fin);
+			getMap()->emplace(std::pair<int, int>(e->getCoord()->x, e->getCoord()->y), e);
+		}
+	}
+
 	void Chest::iterate(Player& player)
 	{
 		if (item == nullptr)
@@ -36,7 +78,7 @@
 				if (player.getInventory()[i]->getType() == ItemType::masterkey)
 				{
 					float chance = lvl == 0 ? 100 : 100.0f / (float)lvl;
-					float personalChance = (int)((float)(rand() % 100) / ((float)player.getAgility() / 3.0f));
+					float personalChance = (int)((float)(rand() % 100) / ((float)player.getAgility() / 1.5f));
 					if (personalChance <= (int)chance) {
 						//player.dropItem(i);
 						setStatus(false);
@@ -75,6 +117,15 @@
 		return string;
 	}
 
+	void Chest::load(std::ifstream& fin)
+	{
+		fin.read((char*)this + sizeof(void*), sizeof(Chest) - sizeof(void*));
+		if (item != nullptr)
+		{
+			item = loadItem(fin);
+		}
+	}
+
 	void Door::iterate(Player& player)
 	{
 		if (getStatus())
@@ -107,4 +158,39 @@
 		string.append("; ");
 		string.append(getStatus() == false ? "opened." : "closed.");
 		return string;
+	}
+
+	void Chest::save(std::ofstream& fout)
+	{
+		LoadingEnvironmentType let = chest;
+		fout.write((char*)&let, sizeof(int));
+		fout.write((char*)this + sizeof(void*),sizeof(Chest) - sizeof(void*));
+		if (item != nullptr)
+		{
+			item->saveToFile(fout);
+		}
+	}
+
+	void Door::save(std::ofstream& fout)
+	{
+		LoadingEnvironmentType let = door;
+		fout.write((char*)&let, sizeof(int));
+		fout.write((char*)this + sizeof(void*),sizeof(Door) - sizeof(void*));
+	}
+
+	void Door::load(std::ifstream& fin)
+	{
+		fin.read((char*)this  + sizeof(void*),sizeof(Door) - sizeof(void*));
+	}
+
+	void ExitDoor::save(std::ofstream& fout)
+	{
+		LoadingEnvironmentType let = exitdoor;
+		fout.write((char*)&let, sizeof(int));
+		fout.write((char*)this + sizeof(void*),sizeof(ExitDoor) - sizeof(void*));
+	}
+
+	void ExitDoor::load(std::ifstream& fin)
+	{
+		fin.read((char*)this + sizeof(void*),sizeof(ExitDoor) - sizeof(void*));
 	}

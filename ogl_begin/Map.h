@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <fstream>
 //#include "Creatures.h"
 //#include "Environment.h"
 //#include "Items.h"
@@ -52,6 +53,32 @@ enum EffectType
 	hp,
 	mana,
 	dmg
+};
+
+enum LoadingItemType
+{
+	mstrk,
+	ptn,
+	wpn,
+	prt,
+	aprt,
+	awpn,
+	ewpn,
+	aewpn
+};
+
+enum LoadingEnvironmentType
+{
+	chest,
+	door,
+	exitdoor
+};
+
+enum Scene
+{
+	menu,
+	game,
+	ext
 };
 
 namespace Map

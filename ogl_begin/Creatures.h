@@ -3,6 +3,7 @@
 #include "Map.h"
 #include "Items.h"
 #include <iostream>
+#include <fstream>
 #include <list>
 
 #define WEAPON 0
@@ -83,6 +84,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		Item** inventory;
 		Equipment** equipment;
 		int items;
+		bool isEnd = false;
 
 		int getDamageTo(CreatureType target) const;
 	public:
@@ -100,17 +102,24 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		}
 		inline ~Player() 
 		{
-			for (int i = 0; i < getItems(); i++)
+			if (inventory != nullptr)
 			{
-				delete inventory[i];
+				for (int i = 0; i < getItems(); i++)
+				{
+					delete inventory[i];
+				}
+				delete[] inventory;
 			}
-			for (int i = 0; i < EQUIPMENT_SIZE; i++)
+			if (equipment != nullptr)
 			{
-				if (equipment[i] != nullptr) delete equipment[i];
+				for (int i = 0; i < EQUIPMENT_SIZE; i++)
+				{
+					if (equipment[i] != nullptr) delete equipment[i];
+				}
+				delete[] equipment;
 			}
-			delete[] inventory; 
-			delete[] equipment; 
 		}
+		inline bool& getIsEnd() { return isEnd; }
 		inline Item** const& getInventory() const { return inventory; }
 		inline Equipment** const& getEquipment() const { return equipment; }
 		inline void setItems(int items) { this->items = items; }
@@ -123,6 +132,8 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline void heal(int hp) { if (this->getHp() + hp > this->getMaxHp()) setHp(getMaxHp()); else setHp(getHp() + hp); };
 		inline void setAgility(int a) { agility = a; }
 		static inline int getInventorySize() { return INVENTORY_SIZE; }
+		void saveToFile(std::ofstream& fout);
+		void readFromFile(std::ifstream& fin);
 
 		std::string getLvlString();
 		std::string getAgilityString();
@@ -149,6 +160,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 	private:
 		static std::list<Enemy*> enemys;
 	public:
+		inline Enemy() : Creature(100, 1, 1, 1, zombie, Coord(0, 0)) {}
 		inline Enemy(int hp, int dmg, int pro, int exp, CreatureType t, Coord spawnCoord) : Creature(hp, dmg, pro, exp, t, spawnCoord)
 		{
 			enemys.push_back(this);
@@ -156,5 +168,8 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 		inline ~Enemy() {}
 		Direction* goToPlayer(Player& player, const int& mapSize, char( *map )[Map::MAP_SIZE], char ( *enemyMap )[Map::MAP_SIZE], int& pathSize);
 		static inline std::list<Enemy*>& getEnemys() { return enemys; }
+		static void clearEnemys();
+		static void saveToFile(std::ofstream& fout);
+		static void loadFromFile(std::ifstream& fin);
 		static Enemy* getEnemy(int x, int y);
 	};

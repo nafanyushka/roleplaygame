@@ -172,6 +172,46 @@ int Player::getDamage() const
 	return resultDmg;
 }
 
+void Player::saveToFile(std::ofstream& fout)
+{
+	fout.write((char*)this + sizeof(void*), sizeof(Player) - sizeof(void*));
+	for (int i = 0; i < getItems(); i++)
+	{
+		inventory[i]->saveToFile(fout);
+	}
+	fout.write((char*)equipment, EQUIPMENT_SIZE * sizeof(Equipment*));
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		if (equipment[i] != nullptr)
+			equipment[i]->saveToFile(fout);
+	}
+}
+
+void Player::readFromFile(std::ifstream& fin)
+{
+	//delete[] inventory;
+	//delete[] equipment;
+	Item** inv = inventory;
+	Equipment** eq = equipment;
+	fin.read((char*)this + sizeof(void*), sizeof(Player) - sizeof(void*));
+	inventory = inv;
+	equipment = eq;
+	//inventory = new Item * [INVENTORY_SIZE];
+	//equipment = new Equipment * [EQUIPMENT_SIZE];
+	for (int i = 0; i < getItems(); i++)
+	{
+		inventory[i] = loadItem(fin);
+	}
+	fin.read((char*)equipment, sizeof(Equipment*) * EQUIPMENT_SIZE);
+	for (int i = 0; i < EQUIPMENT_SIZE; i++)
+	{
+		if (equipment[i] != nullptr)
+		{
+			equipment[i] = loadEquipment(fin);
+		}
+	}
+}
+
 std::string Player::getLvlString()
 {
 	return std::to_string(lvl);
@@ -476,7 +516,7 @@ void generateValues(int& x, int& y, const int& mapSize, Node<Coord>*& curNode, c
 	int value = mapLen[x][y];
 	if (x - 1 >= 0)
 	{
-		if (mapLen[x - 1][y] == INT_MAX && movementMap[x - 1][y] != '#' && movementMap[x - 1][y] != 'c' && movementMap[x - 1][y] != '!')
+		if (mapLen[x - 1][y] == INT_MAX && movementMap[x - 1][y] != '#' && movementMap[x - 1][y] != 'c' && movementMap[x - 1][y] != '!' && movementMap[x - 1][y] != '?')
 		{
 			mapLen[x - 1][y] = value + 1;
 			Coord* c = new Coord(x - 1, y);
@@ -485,7 +525,7 @@ void generateValues(int& x, int& y, const int& mapSize, Node<Coord>*& curNode, c
 	}
 	if (x + 1 < mapSize )
 	{
-		if (mapLen[x + 1][y] == INT_MAX && movementMap[x + 1][y] != '#' && movementMap[x + 1][y] != 'c' && movementMap[x + 1][y] != '!')
+		if (mapLen[x + 1][y] == INT_MAX && movementMap[x + 1][y] != '#' && movementMap[x + 1][y] != 'c' && movementMap[x + 1][y] != '!' && movementMap[x + 1][y] != '?')
 		{
 			mapLen[x + 1][y] = value + 1;
 			Coord* c = new Coord(x + 1, y);
@@ -494,7 +534,7 @@ void generateValues(int& x, int& y, const int& mapSize, Node<Coord>*& curNode, c
 	}
 	if (y - 1 >= 0)
 	{
-		if (mapLen[x][y - 1] == INT_MAX && movementMap[x][y - 1] != '#' && movementMap[x][y - 1] != 'c' && movementMap[x][y - 1] != '!')
+		if (mapLen[x][y - 1] == INT_MAX && movementMap[x][y - 1] != '#' && movementMap[x][y - 1] != 'c' && movementMap[x][y - 1] != '!' && movementMap[x][y - 1] != '?')
 		{
 			mapLen[x][y - 1] = value + 1;
 			Coord* c = new Coord(x, y - 1);
@@ -503,7 +543,7 @@ void generateValues(int& x, int& y, const int& mapSize, Node<Coord>*& curNode, c
 	}
 	if (y + 1 < mapSize)
 	{
-		if (mapLen[x][y + 1] == INT_MAX && movementMap[x][y + 1] != '#' && movementMap[x][y + 1] != 'c' && movementMap[x][y + 1] != '!')
+		if (mapLen[x][y + 1] == INT_MAX && movementMap[x][y + 1] != '#' && movementMap[x][y + 1] != 'c' && movementMap[x][y + 1] != '!' && movementMap[x][y + 1] != '?')
 		{
 			mapLen[x][y + 1] = value + 1;
 			Coord* c = new Coord(x, y + 1);
@@ -699,6 +739,57 @@ Direction* Enemy::goToPlayer(Player& player, const int& mapSize, char(*map)[Map:
 	}*/
 }
 //--------------------------------------------------BOT LOGIC
+
+void Enemy::clearEnemys()
+{
+	for (auto i = enemys.begin(); i != enemys.end(); i++)
+	{
+		delete (*i);
+	}
+}
+
+void Enemy::loadFromFile(std::ifstream& fin)
+{
+	int a = sizeof(CreatureType::zoo);
+	int b = sizeof(Creature);
+	int c = sizeof(Enemy);
+	Enemy* enemys = new Enemy[getEnemys().size() + 1];
+	size_t size = 0;
+	fin.read((char*)&size, sizeof(size_t));
+	/*for (int i = 0; i < size; i++)
+	{
+		fin.read((char*)&enemys[i], sizeof(Enemy));
+		std::cout << enemys[i].getString() << std::endl;
+	}*/
+
+	for (int i = 0; i < size; i++)
+	{
+		Enemy* enemy = new Enemy();
+		fin.read((char*)enemy + sizeof(void*), sizeof(Enemy) - sizeof(void*));
+		getEnemys().push_back(enemy);
+		std::cout << enemy->getString() << std::endl;
+	}
+
+	/*while (fin.read((char*)&enemys[i++], sizeof(Enemy))) {
+		std::cout << enemys[i - 1].getString() << std::endl;
+	}*/
+	delete[] enemys;
+}
+
+void Enemy::saveToFile(std::ofstream& fout)
+{
+	int a = sizeof(size_t);
+	size_t size = Enemy::getEnemys().size();
+	fout.write((char*)&size, sizeof(size_t));
+	for (auto i = enemys.begin(); i != enemys.end(); i++)
+	{
+		Enemy* enemy = (*i);
+		if (fout.write((char*)enemy + sizeof(void*), sizeof(Enemy) - sizeof(void*))) {
+			std::cout << enemy->getString() << std::endl;
+		}
+	}
+	std::cout << "enemys saved!" << std::endl;
+}
 
 Enemy* Enemy::getEnemy(int x, int y)
 {

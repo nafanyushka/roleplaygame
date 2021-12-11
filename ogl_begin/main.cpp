@@ -58,6 +58,17 @@ void gameInit()
 	loadTexture("graphics/boots.png", Map::bootsTexture);
 	loadTexture("graphics/pants.png", Map::pantsTexture);
 	loadTexture("graphics/inventory.png", Map::inventoryTexture);
+	loadTexture("graphics/kalik.png", Map::kalikTexture);
+}
+
+void menuInit()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	loadTexture("graphics/newbtn.png", Map::newbtn);
+	loadTexture("graphics/exitbtn.png", Map::exitbtn);
+	loadTexture("graphics/loadbtn.png", Map::loadbtn);
+	loadTexture("graphics/menufon.png", Map::menu);
 }
 
 void drawNazi(float size, float x, float y)
@@ -156,18 +167,85 @@ void drawInfoSquare(float size, float x, float y, float fading)
 
 void drawRectangle(float h, float l, float x, float y)
 {
+	glDisable(GL_TEXTURE_2D);
+	float vertex[] = { x - l / 2.0f,y - h / 2.0f,0, x + l / 2.0f,y - h / 2.0f,0, x + l / 2.0f ,y + h / 2.0f,0, x - l / 2.0f,y + h / 2.0f,0 };
 	glPushMatrix();
-	glTranslatef(x, y, 0);
-	glBegin(GL_TRIANGLES);
-	glVertex2f(0.0f, 0.0f);
-	glVertex2f(l, 0.0f);
-	glVertex2f(0.f, h);
-	glVertex2f(0.f, h);
-	glVertex2f(l, 0.0f);
-	glVertex2f(l, h);
-	glEnd();
+	glEnableClientState(GL_VERTEX_ARRAY);
+
+	glVertexPointer(3, GL_FLOAT, 0, vertex);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
+
+void printText(std::string text, float x, float y, float resizeCoeff)
+//ŒÚ -1 ‰Ó 1 ÛÍ‡Á˚‚‡Ú¸.
+{
+	float k = (float)Map::w / (float)Map::h;
+	float h = (x / k + 1.0f) * (Map::w / 2.0f);
+	float w = (1.0f - y) * (Map::h / 2.0f);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, Map::w, Map::h, 0, -1, 1);
+	const char* c = (text.c_str());
+	char* cString = new char[text.size() + 1];
+	int i = 0;
+	while (*c)
+	{
+		cString[i] = *(c++);
+		i++;
+	}
+	cString[i] = '\0';
+	glScalef(resizeCoeff, resizeCoeff, 1.0f);
+	printString(h / resizeCoeff, w / resizeCoeff, cString, 1.0f, 1.0f, 1.0f);
+	delete[] cString;
+	glPopMatrix();
+}
+
+void drawButton(std::string text, float h, float l, float x, float y)	
+{
+	drawRectangle(h, l, x, y);
+	printText(text, x - l/2.0f, y, 2.0f);
+}
+
+void drawMenu()
+{
+	drawTexturedSquare(2, -1, -1, Map::menu);
+	glPushMatrix();
+	glTranslatef(-0.2f, -0.2f, 0);
+	drawTexturedSquare(0.4f, 0.5f, 0.45f, Map::newbtn);
+	drawTexturedSquare(0.4f, 0.5f, 0.0f, Map::loadbtn);
+	drawTexturedSquare(0.4f, 0.5f, -0.45f, Map::exitbtn);
+	glPopMatrix();
+}
+
+Scene tapOnMenu(float x, float y)
+{
+	if (x > 0.5f && x < 0.9f && y > 0.45f && y < 0.95f)
+	{
+		loadDefaultMap();
+		saveMap();
+		return game;
+	}
+	else if (x > 0.5f && x < 0.9f && y > 0.0f && y < 0.4f)
+	{
+		if (!load())
+		{
+			Enemy::clearEnemys();
+			Environment::clearMap();
+			return menu;
+		}
+		return game;
+
+	}
+	else if (x > 0.5f && x < 0.9f && y > -0.45f && y < -0.05f)
+	{
+		return ext;
+	}
+	return menu;
+}
+
 
 int getCoordMap(int coord)
 {
@@ -195,9 +273,10 @@ void drawChest(float& size, float x, float y, bool isClosed)
 	else drawTexturedSquare(size, x, y, Map::chestTexture);
 }
 
-void drawDoor(float& size, float x, float y, bool isClosed)
+void drawDoor(float& size, float x, float y, bool isClosed, bool isExit)
 {
-	if (isClosed) drawTexturedSquare(size, x, y, Map::closedDoorTexture);
+	if  (isExit) drawTexturedSquare(size, x, y, Map::kalikTexture);
+	else if (isClosed) drawTexturedSquare(size, x, y, Map::closedDoorTexture);
 	else drawTexturedSquare(size, x, y, Map::doorTexture);
 }
 
@@ -257,7 +336,12 @@ void see(int& x, int& y, float& d)
 				}
 				else if (place == '!')
 				{
-					drawDoor(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus());
+					drawDoor(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus(), false);
+				}
+				else if (place == '?')
+				{
+					drawDoor(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus(), true);
+
 				}
 				else if (place == 'c')
 				{
@@ -326,29 +410,6 @@ Coord mapInfo(int&& x, int&& y, float& mouseX, float& mouseY, float& d)
 	return Coord(-1, -1);
 }
 
-void printText(std::string text, float x, float y, float resizeCoeff)
-//ŒÚ -1 ‰Ó 1 ÛÍ‡Á˚‚‡Ú¸.
-{
-	float k = (float)Map::w / (float)Map::h;
-	float h = (x / k + 1.0f) * (Map::w / 2.0f);
-	float w = (1.0f - y) * (Map::h / 2.0f);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0, Map::w, Map::h, 0, -1, 1);
-	const char* c = (text.c_str());
-	char* cString = new char[text.size() + 1];
-	int i = 0;
-	while (*c)
-	{
-		cString[i] = *(c++);
-		i++;
-	}
-	cString[i] = '\0';
-	glScalef(resizeCoeff, resizeCoeff, 1.0f);
-	printString(h / resizeCoeff, w / resizeCoeff, cString, 1.0f, 1.0f, 1.0f);
-	delete[] cString;
-	glPopMatrix();
-}
 
 void showInfo(std::string&& info)
 {
@@ -431,17 +492,19 @@ void tapOnCharacteristics(float x, float y)
 {
 	float size = 0.5f;
 	float otstup = 0.1f;
-	if (x > -1.0f + size + (otstup + size / 4.0f) * 1.0f && x < size / 4.0f + -1.0f + size + (otstup + size / 4.0f) * 1.0f
+	if (x > -1.0f + otstup && x < -1.0f + otstup + size / 2.0f && y > 1.0f - size && y < 1.0f - size + size / 2.0f)
+		saveMap();
+	else if (x > -1.0f + size + (otstup + size / 4.0f) * 1.0f && x < size / 4.0f + -1.0f + size + (otstup + size / 4.0f) * 1.0f
 		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
 	{
 		Map::player.upStats(agil);
 	}
-	if (x > -1.0f + size + (otstup + size / 4.0f) * 2.0f && x < -1.0f + size + (otstup + size / 4.0f) * 2.0f + size / 4.0f
+	else if (x > -1.0f + size + (otstup + size / 4.0f) * 2.0f && x < -1.0f + size + (otstup + size / 4.0f) * 2.0f + size / 4.0f
 		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
 	{
 		Map::player.upStats(power);
 	}
-	if (x > -1.0f + size + (otstup + size / 4.0f) * 3.0f && x < -1.0f + size + (otstup + size / 4.0f) * 3.0f + size / 4.0f 
+	else if (x > -1.0f + size + (otstup + size / 4.0f) * 3.0f && x < -1.0f + size + (otstup + size / 4.0f) * 3.0f + size / 4.0f
 		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
 	{
 		Map::player.upStats(intel);
@@ -587,7 +650,7 @@ void move(int& x, int& y)
 			if (*nextC == '.') {
 				Map::player.move(top, Map::MAP_SIZE); return;
 			}
-			else if (*nextC == '!')
+			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
 				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
@@ -618,7 +681,7 @@ void move(int& x, int& y)
 			{
 				Map::player.move(bottom, Map::MAP_SIZE); return;
 			}
-			else if (*nextC == '!')
+			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
 				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
@@ -648,7 +711,7 @@ void move(int& x, int& y)
 			if (*nextC == '.') {
 				Map::player.move(left, Map::MAP_SIZE); return;
 			}
-			else if (*nextC == '!')
+			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
 				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
@@ -678,7 +741,7 @@ void move(int& x, int& y)
 			if (*nextC == '.') {
 				Map::player.move(right, Map::MAP_SIZE); return;
 			}
-			else if (*nextC == '!')
+			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
 				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
@@ -704,7 +767,7 @@ void move(int& x, int& y)
 	Map::player.setCoord(Coord(x, y));
 }
 
-void botsMove()
+bool botsMove()
 {
 	//if(Map::enemys[enemy.getCoord().x][enemy.getCoord().y]);
 	/*Map::enemys[enemy.getCoord().x][enemy.getCoord().y] = '-';
@@ -727,9 +790,10 @@ void botsMove()
 			{
 				if ((*botLogicIterator)->getMovepoints() <= 0)
 					botLogicIterator++;
-				else { Map::pathI = 0; Sleep(50); }
+				else { Map::pathI = 0; Sleep(50); return true; }
 			}
 			else Map::pathI = 0;
+			return false;
 		}
 		else
 		{
@@ -740,6 +804,7 @@ void botsMove()
 				Map::enemys[(*botLogicIterator)->getCoord().x][(*botLogicIterator)->getCoord().y] = 'e';
 				Map::pathI++;
 				Sleep(50);
+				return true;
 			}
 			else
 			{
@@ -748,6 +813,7 @@ void botsMove()
 				Map::pathSize = 0;
 				delete[] Map::pathToPlayer;
 				Map::pathToPlayer = nullptr;
+				return false;
 			}
 		}
 	}
@@ -776,6 +842,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	HGLRC hRC;
 	MSG msg;
 	BOOL bQuit = FALSE;
+	bool launch = true;
 	float theta = 0.0f;
 	float scale = 0.0001f;
 	srand(time(NULL));
@@ -791,7 +858,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//TEST!!!
 	// 
 	// 
-	createMap();
+	//saveDefaultMap();
+	//loadMap();
+	//load();
 	// 
 	// 
 
@@ -870,8 +939,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		980,
-		980,
+		1920,
+		1080,
 		NULL,
 		NULL,
 		hInstance,
@@ -879,12 +948,17 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	ShowWindow(hwnd, nCmdShow);
 
+	RECT rct;
+	GetClientRect(GetDesktopWindow(), &rct);
+	SetWindowLongPtr(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+	SetWindowPos(hwnd, HWND_TOP, rct.left, rct.top, rct.right, rct.bottom, SWP_SHOWWINDOW);
+
 	/* enable OpenGL for the window */
 	EnableOpenGL(hwnd, &hDC, &hRC);
-
+	menuInit();
 	gameInit();
 	/* program main loop */
-	while (!bQuit && Map::player.getHp() > 0)
+	while (!bQuit && Map::player.getHp() > 0 && !Map::player.getIsEnd() && !Map::isEnd)
 	{
 		/* check for messages */
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -903,16 +977,43 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		else
 		{
 			/* OpenGL animation code goes here */
+
 			int playerX = Map::player.getCoord().x, playerY = Map::player.getCoord().y;
 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 
-			glEnable(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, Map::humanTexture);
-			//-----------------------------------------------------------------------GRAPHICS
-			glPushMatrix();
-			/*glEnableClientState(GL_VERTEX_ARRAY);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);*/
+			//glEnable(GL_TEXTURE_2D);
+			//glBindTexture(GL_TEXTURE_2D, Map::humanTexture);
+
+			if (launch)
+			{
+				using Map::h;
+				using Map::w;
+				w = 1920;
+				h = 1080;
+				glViewport(0, 0, w, h);
+				float k = w / (float)h;
+				glLoadIdentity();
+				glOrtho(-k, k, -1, 1, -1, 1);
+				launch = false;
+			}
+
+			switch (Map::scene)
+			{
+			case menu:
+				glPushMatrix();
+				drawMenu();
+				glPopMatrix();
+				//-----------------------------------------------------------------------
+				SwapBuffers(hDC);
+				Sleep(1);
+				break;
+			case game:
+			{
+				
+				glPushMatrix();
+				/*glEnableClientState(GL_VERTEX_ARRAY);
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);*/
 				glTranslatef(-d / 2, -d / 2, 0.0f);
 				glScalef(0.5f, 0.5f, 1.0f);
 				float x = 0.0f + (float)playerX * d, y = 0.0f + (float)playerY * d;
@@ -925,22 +1026,31 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				glScalef(2.0f, 2.0f, 1.0f);
 				/*glDisableClientState(GL_VERTEX_ARRAY);
 				glDisableClientState(GL_TEXTURE_COORD_ARRAY);*/
-			glPopMatrix();
-			drawHud();
-			drawInfo();
-			//-----------------------------------------------------------------------
-			SwapBuffers(hDC);
-			//-----------------------------------------------------------------------LOGIC
-			if (Map::player.getMovepoints() > 0)
-			{
-				move(playerX, playerY);
+				glPopMatrix();
+				drawHud();
+				drawInfo();
+				//-----------------------------------------------------------------------
+				SwapBuffers(hDC);
+				//-----------------------------------------------------------------------LOGIC
+
+				if (Map::player.getMovepoints() > 0)
+				{
+					move(playerX, playerY);
+				}
+				else
+				{
+					while (!botsMove());
+				}
+				//-----------------------------------------------------------------------GRAPHICS
+				Sleep(1);
 			}
-			else
-			{
-				botsMove();
+				break;
+			case ext:
+				Map::isEnd = true;
+				break;
 			}
 			//-----------------------------------------------------------------------GRAPHICS
-			Sleep(1);
+			
 		}
 	}
 
@@ -950,7 +1060,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	/* destroy the window explicitly */
 	DestroyWindow(hwnd);
 	Environment::clearMap();
-	return msg.wParam;
+	Enemy::clearEnemys();
+	return 0/*msg.wParam*/;
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -966,16 +1077,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_LBUTTONDOWN:
 		Sleep(10);
-		wCoord = ((float)LOWORD(lParam) * 2.0f / (float)Map::w - 1.0f) * k;
-		hCoord = (-(float)HIWORD(lParam) * (2.0f) / (float)Map::h + 1.0f);
-		index = tapOnInventory(wCoord, hCoord);
-		if (index != -1)
+		wCoord = (float)LOWORD(lParam);
+		hCoord = -(float)HIWORD(lParam);
+		switch (Map::scene)
 		{
-			Map::player.equip(index);
-		}
-		else
-		{
-			tapOnCharacteristics(wCoord, hCoord); //œ–Œ ¿◊ ¿ ’¿–¿ “≈–»—“» 
+		case menu:
+			wCoord = (wCoord * 2.0f / (float)Map::w - 1.0f) * k + 0.2f;
+			hCoord = (hCoord * (2.0f) / (float)Map::h + 1.0f) + 0.2f;
+			Map::scene = tapOnMenu(wCoord, hCoord);
+			break;
+		case game:
+			wCoord = (wCoord * 2.0f / (float)Map::w - 1.0f) * k;
+			hCoord = (hCoord * (2.0f) / (float)Map::h + 1.0f);
+			index = tapOnInventory(wCoord, hCoord);
+			if (index != -1)
+			{
+				Map::player.equip(index);
+			}
+			else
+			{
+				tapOnCharacteristics(wCoord, hCoord); //œ–Œ ¿◊ ¿ ’¿–¿ “≈–»—“» 
+			}
+			break;
+		case ext:
+			break;
 		}
 		break;
 	case WM_RBUTTONDOWN:

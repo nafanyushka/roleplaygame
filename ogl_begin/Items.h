@@ -1,5 +1,6 @@
 #pragma once
 #include "Map.h"
+#include <fstream>
 
 #define AGIL 0
 #define POW 1
@@ -21,6 +22,8 @@
 		virtual inline void operator = (const Item& item) { this->itemType = item.itemType; }
 
 		virtual std::string getString();
+		virtual void saveToFile(std::ofstream& fout);
+		virtual void loadFromFile(std::ifstream& fin);
 		//virtual void iterate(Player& player);
 	};
 
@@ -32,6 +35,8 @@
 	public:
 		inline Potion(int effect, EffectType type) : Item(potion), type(type), effect(effect) {}
 
+		void saveToFile(std::ofstream& fout) override;
+		void loadFromFile(std::ifstream& fin) override;
 		inline EffectType getEffectType() { return type; }
 		inline int getEffect() const { return effect; }
 		std::string getString() override;
@@ -42,6 +47,8 @@
 	private:
 		EquipmentType equipmentType;
 	public:
+		virtual void saveToFile(std::ofstream& fout) = 0;
+		virtual void loadFromFile(std::ifstream& fin) = 0;
 		inline Equipment(EquipmentType type) : equipmentType(type) {}
 		inline Equipment() : equipmentType(weapon) {}
 		virtual inline ~Equipment() {}
@@ -88,6 +95,8 @@
 		inline Weapon(int dmg) : Item(equipment), damage(dmg), Equipment(), isEnchanted(false) {}
 		virtual inline ~Weapon() {}
 
+		void loadFromFile(std::ifstream& fin) override;
+		void saveToFile(std::ofstream& fout) override;
 		inline bool getIsEnchanted() const { return isEnchanted; }
 		inline int getProtection() const override { return 0; }
 		inline int getDmg() const override { return damage; }
@@ -105,6 +114,8 @@
 	private:
 		int protection;
 	public:
+		void saveToFile(std::ofstream& fout) override;
+		void loadFromFile(std::ifstream& fin) override;
 		inline Protection(EquipmentType type, int prot) : Item(equipment), Equipment(type), protection(prot) {}
 		virtual inline ~Protection() {}
  		inline int getProtection() const override { return protection; }
@@ -118,6 +129,8 @@
 	class ArtifactProtection : public Protection, public Artifact
 	{
 	public:
+		void saveToFile(std::ofstream& fout) override;
+		void loadFromFile(std::ifstream& fin) override;
 		inline ArtifactProtection(EquipmentType type, int prot, int da, int dp, int di, int dd, int dprot) : Protection(type, prot), Artifact(da, dp, di, dd, dprot) {}
 		inline int getProtection() const override { return Protection::getProtection() + getDCharacteristics()[PROT]; }
 		inline int getDmg() const override { return getDCharacteristics()[DMG]; }
@@ -132,6 +145,8 @@
 	private:
 		
 	public:
+		void saveToFile(std::ofstream& fout) override;
+		void loadFromFile(std::ifstream& fin) override;
 		inline ArtifactWeapon() : Weapon(), Artifact() {}
 		inline ArtifactWeapon(int dmg, int da, int dp, int di, int dd, int dprot) : Weapon(dmg), Artifact(da, dp, di, dd, dprot) {}
 		virtual inline ~ArtifactWeapon() {}
@@ -158,6 +173,8 @@
 	class EnchantedWeapon : public virtual Weapon, public Enchantment
 	{
 	public:
+		void saveToFile(std::ofstream& fout) override;
+		void loadFromFile(std::ifstream& fin) override;
 		inline EnchantedWeapon(int dmg, float k, CreatureType gainAgainst) : Weapon(dmg, true), Enchantment(abs(k), gainAgainst) {}
 		virtual inline ~EnchantedWeapon() {}
 		virtual int getDmgTo(CreatureType creature);
@@ -171,6 +188,8 @@
 	private:
 
 	public:
+		void saveToFile(std::ofstream& fout) override;
+		void loadFromFile(std::ifstream& fin) override;
 		inline EnchantedArtifactWeapon(int dmg, int da, int dp, int di, int dd, int dprot, float k, CreatureType gainAgainst) : Weapon(dmg, true), ArtifactWeapon(dmg, da, dp, di, dd, dprot), EnchantedWeapon(dmg, k, gainAgainst) {}
 		inline int getProtection() const override { return getDCharacteristics()[PROT]; }
 		inline int getDmg() const override { return Weapon::getDmg() + getDCharacteristics()[DMG]; }
@@ -180,3 +199,6 @@
 		int getDmgTo(CreatureType creature) override;
 		std::string getString() override;
 	};
+
+	Item* loadItem(std::ifstream& fin);
+	Equipment* loadEquipment(std::ifstream& fin);

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iostream>
 #include <windows.h>
+#include <fstream>
 #include <gl/gl.h>
 #include "Creatures.h"
 #include "Environment.h"
@@ -13,6 +15,12 @@ LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 void EnableOpenGL(HWND hwnd, HDC*, HGLRC*);
 void DisableOpenGL(HWND, HDC, HGLRC);
 
+
+void printString(float x, float y, char* text, float r, float g, float b);
+void drawSquare(float size, float x, float y);
+void drawRectangle(float h, float l, float x, float y);
+
+
 //-------------------------VARIABLES---------------------------//
 namespace Map
 {
@@ -23,15 +31,18 @@ namespace Map
 	int floor[MAP_SIZE][MAP_SIZE];
 	char enemys[MAP_SIZE][MAP_SIZE];
 	Coord info(-1, -1);
+	ExitDoor* exit = nullptr;
 	int inventoryInfo = -1;
 	int equipmentInfo = -1;
 	int w, h;
 	int watchingIndex = 0;
+	bool isEnd = false;
 	float fading = 0.0f;
 	//BOT LOGIC
 	int pathSize = 0, pathI = 0;
 	Direction* pathToPlayer = nullptr;
 	auto botLogicIterator = Enemy::getEnemys().begin();
+	Scene scene = Scene::menu;
 
 	//TEXTURES
 	float textureMap[] = { 0,1, 1,1, 1,0, 0,0 };
@@ -56,7 +67,13 @@ namespace Map
 	unsigned int pantsTexture;
 	unsigned int bootsTexture;
 	unsigned int bibTexture;
+	unsigned int kalikTexture;
 	unsigned int inventoryTexture;
+
+	unsigned int newbtn;
+	unsigned int loadbtn;
+	unsigned int exitbtn;
+	unsigned int menu;
 
 	//FUN
 	float tetha = 0.0f;
@@ -90,10 +107,10 @@ inline void createWall(int fromX, int fromY, int toX, int toY)
 inline void createMap()
 {
 	using namespace Map;
-
 	//TEST!
-	player.setAgility(40);
+	//player.setAgility(40);
 	//TEST!
+	//Map::player = Player(100, 10, 0, 0, humanic, Coord(getCoordPlane(1), getCoordPlane(1)));
 	srand(time(NULL));
 	for (int i = 0; i < MAP_SIZE; i++) {
 		for (int j = 0; j < MAP_SIZE; j++)
@@ -193,6 +210,7 @@ inline void createMap()
 	createRoom(73, 4, 76, 26);
 	createRoom(77, 0, 77, 22);
 
+	Map::exit = new ExitDoor(47, 53);
 	new Door(Coord(7, 3), true, 1);
 	new Door(Coord(7, 9), false, 1);
 	new Door(Coord(9, 13), false, 1);
@@ -280,7 +298,9 @@ inline void createMap()
 	{
 		int x = i->second->getCoord()->x;
 		int y = i->second->getCoord()->y;
-		map[x][y] = '!';
+		if (i->second == Map::exit)
+			map[x][y] = '?';
+		else map[x][y] = '!';
 	}
 	new Chest(Coord(2, 4), new Item(masterkey), false, 1);
 	new Chest(Coord(3, 4), new Weapon(10), false, 1);
@@ -288,12 +308,12 @@ inline void createMap()
 	new Chest(Coord(5, 4), new Protection(bib, 5), true, 2);
 	new Chest(Coord(13, 9), new Protection(pants, 10), true, 3);
 	new Chest(Coord(1, 9), new Item(masterkey), true, 1);
-	
+
 	for (auto i = Environment::getMap()->begin(); i != Environment::getMap()->end(); i++)
 	{
 		int x = i->second->getCoord()->x;
 		int y = i->second->getCoord()->y;
-		if (map[x][y] != '!')
+		if (map[x][y] != '!' && map[x][y] != '?')
 		{
 			map[x][y] = 'c';
 		}
@@ -328,7 +348,7 @@ inline void createMap()
 	new Enemy(30, 10, 0, 2, zombie, Coord(15, 22));
 	new Enemy(30, 10, 0, 2, zombie, Coord(32, 24));
 
-	//ZOO REGION
+	////ZOO REGION
 
 	new Enemy(30, 10, 0, 2, zoo, Coord(18, 27));
 	new Enemy(30, 10, 0, 2, zoo, Coord(23, 30));
@@ -343,7 +363,7 @@ inline void createMap()
 	new Enemy(30, 10, 0, 2, zoo, Coord(20, 67));
 	new Enemy(30, 10, 0, 2, zoo, Coord(22, 52));
 
-	//HUMAN REGION
+	////HUMAN REGION
 
 	new Enemy(30, 10, 0, 2, humanic, Coord(38, 4));
 	new Enemy(30, 10, 0, 2, humanic, Coord(41, 2));
@@ -370,8 +390,8 @@ inline void createMap()
 	new Enemy(30, 10, 0, 2, humanic, Coord(74, 13));
 	new Enemy(30, 10, 0, 2, humanic, Coord(74, 22));
 
-	//ICY REGION
-	
+	////ICY REGION
+	//
 	new Enemy(30, 10, 0, 2, icy, Coord(30, 29));
 	new Enemy(30, 10, 0, 2, icy, Coord(28, 33));
 	new Enemy(30, 10, 0, 2, icy, Coord(30, 37));
@@ -386,7 +406,7 @@ inline void createMap()
 	new Enemy(30, 10, 0, 2, icy, Coord(36, 60));
 	new Enemy(30, 10, 0, 2, icy, Coord(37, 60));
 
-	//DEMON REGION
+	////DEMON REGION
 
 	new Enemy(30, 10, 0, 2, demonic, Coord(29, 62));
 	new Enemy(30, 10, 0, 2, demonic, Coord(29, 64));
@@ -430,6 +450,146 @@ inline void createMap()
 		int y = (*i)->getCoord().y;
 		{
 			enemys[x][y] = 'e';
+		}
+	}
+}
+
+inline void savePlayerAndMap(std::string dir)
+{
+	std::ofstream fout;
+	dir.append("map.dngn");
+	fout.open(dir, std::ofstream::binary | std::ofstream::in);
+	if (!fout.is_open())
+	{
+		fout.open(dir, std::ofstream::binary);
+		fout.close();
+		fout.open(dir, std::ofstream::binary | std::ofstream::in);
+	}
+	Map::player.saveToFile(fout);
+	fout.write((char*)Map::map, sizeof(char) * Map::MAP_SIZE * Map::MAP_SIZE);
+	fout.close();
+}
+
+inline void saveEnemys(std::string dir)
+{
+	std::ofstream fout;
+	dir.append("enemys.dngn");
+	fout.open(dir, std::ofstream::binary | std::ofstream::in);
+	if (!fout.is_open())
+	{
+		fout.open(dir, std::ofstream::binary);
+		fout.close();
+		fout.open(dir, std::ofstream::binary | std::ofstream::in);
+	}
+	Enemy::saveToFile(fout);
+	fout.close();
+}
+
+inline void saveEnvironment(std::string dir)
+{
+	std::ofstream fout;
+	dir.append("environment.dngn");
+	fout.open(dir, std::ofstream::binary | std::ofstream::in);
+	if (!fout.is_open())
+	{
+		fout.open(dir, std::ofstream::binary);
+		fout.close();
+		fout.open(dir, std::ofstream::binary | std::ofstream::in);
+	}
+	Environment::saveToFile(fout);
+	fout.close();
+}
+
+inline bool loadPlayerAndMap(std::string dir)
+{
+	std::ifstream fin;
+	dir.append("map.dngn");
+	fin.open(dir, std::ifstream::binary | std::ifstream::in);
+	if (!fin.is_open())
+		return false;
+	Map::player.readFromFile(fin);
+	fin.read((char*)Map::map, sizeof(char) * Map::MAP_SIZE * Map::MAP_SIZE);
+	fin.close();
+	return true;
+}
+
+inline bool loadEnemys(std::string dir)
+{
+	std::ifstream fin;
+	dir.append("enemys.dngn");
+	fin.open(dir, std::ifstream::binary | std::ifstream::in);
+	if (!fin.is_open())
+		return false;
+	Enemy::loadFromFile(fin);
+	fin.close();
+	return true;
+}
+
+inline bool loadEnvironment(std::string dir)
+{
+	std::ifstream fin;
+	dir.append("environment.dngn");
+	fin.open(dir, std::ifstream::binary | std::ifstream::in);
+	if (!fin.is_open())
+		return false;
+	Environment::loadFromFile(fin);
+	fin.close();
+	return true;
+}
+
+inline void saveDefaultMap()
+{
+	createMap();
+	std::string defaultPath = "bin/default/";
+	savePlayerAndMap(defaultPath);
+	saveEnemys(defaultPath);
+	saveEnvironment(defaultPath);
+}
+
+inline void saveMap()
+{
+	std::string defaultPath = "bin/save/";
+	savePlayerAndMap(defaultPath);
+	saveEnemys(defaultPath);
+	saveEnvironment(defaultPath);
+}
+
+inline bool load()
+{
+	std::string defaultPath = "bin/save/";
+	bool isLoading = true;
+	isLoading = loadPlayerAndMap(defaultPath);
+	if(isLoading) isLoading = loadEnemys(defaultPath);
+	if(isLoading) isLoading = loadEnvironment(defaultPath);
+	if (!isLoading)
+	{
+		Environment::clearMap();
+		Enemy::clearEnemys();
+		return false;
+	}
+	for (auto i = Enemy::getEnemys().begin(); i != Enemy::getEnemys().end(); i++)
+	{
+		int x = (*i)->getCoord().x;
+		int y = (*i)->getCoord().y;
+		{
+			Map::enemys[x][y] = 'e';
+		}
+	}
+	return true;
+}
+
+inline void loadDefaultMap()
+{
+	std::string defaultPath = "bin/default/";
+	loadPlayerAndMap(defaultPath);
+	loadEnemys(defaultPath);
+	loadEnvironment(defaultPath);
+	for (auto i = Enemy::getEnemys().begin(); i != Enemy::getEnemys().end(); i++)
+	{
+		int x = (*i)->getCoord().x;
+		int y = (*i)->getCoord().y;
+		{
+			Map::enemys[x][y] = 'e';
 		}
 	}
 }
