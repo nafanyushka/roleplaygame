@@ -259,7 +259,7 @@ std::string Player::getExpString()
 
 void Player::pickup(Item* item)
 	{
-		if (getItems() >= 10)
+		if (getItems() >= INVENTORY_SIZE)
 			return;
 		(getInventory()[getItems()]) = item;
 		setItems(getItems() + 1);
@@ -753,7 +753,7 @@ void Enemy::loadFromFile(std::ifstream& fin)
 	int a = sizeof(CreatureType::zoo);
 	int b = sizeof(Creature);
 	int c = sizeof(Enemy);
-	Enemy* enemys = new Enemy[getEnemys().size() + 1];
+	Enemy* enemys = new Enemy[getEnemys().getSize() + 1];
 	size_t size = 0;
 	fin.read((char*)&size, sizeof(size_t));
 	/*for (int i = 0; i < size; i++)
@@ -779,7 +779,7 @@ void Enemy::loadFromFile(std::ifstream& fin)
 void Enemy::saveToFile(std::ofstream& fout)
 {
 	int a = sizeof(size_t);
-	size_t size = Enemy::getEnemys().size();
+	size_t size = Enemy::getEnemys().getSize();
 	fout.write((char*)&size, sizeof(size_t));
 	for (auto i = enemys.begin(); i != enemys.end(); i++)
 	{
@@ -793,13 +793,13 @@ void Enemy::saveToFile(std::ofstream& fout)
 
 Enemy* Enemy::getEnemy(int x, int y)
 {
-	for (Enemy* e : enemys)
+	for (auto i = enemys.begin(); i != enemys.end(); i++)
 	{
-		Coord c = e->getCoord();
+		Coord c = (*i)->getCoord();
 		if (c.x == x && c.y == y)
 		{
-			if (e->getHp() > 0)
-				return e;
+			if ((*i)->getHp() > 0)
+				return *i;
 			else
 				return nullptr;
 		}

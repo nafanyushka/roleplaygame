@@ -78,7 +78,9 @@ enum Scene
 {
 	menu,
 	game,
-	ext
+	ext,
+	win,
+	lose
 };
 
 namespace Map

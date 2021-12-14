@@ -4,7 +4,8 @@
 #include "Items.h"
 #include <iostream>
 #include <fstream>
-#include <list>
+//#include <list>
+#include "library/List.h"
 
 #define WEAPON 0
 #define HELMET 1

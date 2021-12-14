@@ -246,7 +246,6 @@ Scene tapOnMenu(float x, float y)
 	return menu;
 }
 
-
 int getCoordMap(int coord)
 {
 	return (coord + Map::MAP_SIZE / 2);
@@ -410,7 +409,6 @@ Coord mapInfo(int&& x, int&& y, float& mouseX, float& mouseY, float& d)
 	return Coord(-1, -1);
 }
 
-
 void showInfo(std::string&& info)
 {
 	if (Map::inventoryInfo < 0 && (Map::info.x < 0 || Map::info.y < 0) && Map::equipmentInfo < 0) return;
@@ -550,6 +548,9 @@ void drawHealthBar()
 	glTranslatef(-1.0f, -1.0f, 0.0f);
 	glLineWidth(16);
 	glBegin(GL_LINES);
+		glColor3f(0.0f, 0.5f, 0.0f);
+		glVertex2f(0.0f, 0.01f);
+		glVertex2f(1.0f, 0.01f);
 		glColor3f(0.0f, 1.0f, 0.0f);
 		glVertex2f(0.0f, 0.01f);
 		glVertex2f(1.0f * Map::player.getHp() / Map::player.getMaxHp(), 0.01f);
@@ -1099,7 +1100,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				tapOnCharacteristics(wCoord, hCoord); //ÏÐÎÊÀ×ÊÀ ÕÀÐÀÊÒÅÐÈÑÒÈÊ
 			}
 			break;
-		case ext:
+		default:
 			break;
 		}
 		break;
