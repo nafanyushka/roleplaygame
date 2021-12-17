@@ -8,9 +8,10 @@
 #include "Environment.h"
 #include "Map.h"
 #include "library/stb_easy_font.h"
+#include "library/irrklang/irrKlang.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "library/stb_image.h"
-
+using namespace irrklang;
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 void EnableOpenGL(HWND hwnd, HDC*, HGLRC*);
 void DisableOpenGL(HWND, HDC, HGLRC);
@@ -43,6 +44,7 @@ namespace Map
 	Direction* pathToPlayer = nullptr;
 	auto botLogicIterator = Enemy::getEnemys().begin();
 	Scene scene = Scene::menu;
+	//ISoundEngine* soundEngine;
 
 	//TEXTURES
 	float textureMap[] = { 0,1, 1,1, 1,0, 0,0 };

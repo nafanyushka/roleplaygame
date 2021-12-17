@@ -59,6 +59,7 @@ void gameInit()
 	loadTexture("graphics/pants.png", Map::pantsTexture);
 	loadTexture("graphics/inventory.png", Map::inventoryTexture);
 	loadTexture("graphics/kalik.png", Map::kalikTexture);
+	//Map::soundEngine = createIrrKlangDevice();
 }
 
 void menuInit()
@@ -226,6 +227,7 @@ Scene tapOnMenu(float x, float y)
 	{
 		loadDefaultMap();
 		saveMap();
+		//Map::soundEngine->play2D("sound/ost.mp3", true);
 		return game;
 	}
 	else if (x > 0.5f && x < 0.9f && y > 0.0f && y < 0.4f)
@@ -236,6 +238,7 @@ Scene tapOnMenu(float x, float y)
 			Environment::clearMap();
 			return menu;
 		}
+		//Map::soundEngine->play2D("sound/ost.mp3", true);
 		return game;
 
 	}
@@ -1062,6 +1065,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	DestroyWindow(hwnd);
 	Environment::clearMap();
 	Enemy::clearEnemys();
+	//Map::soundEngine->drop();
 	return 0/*msg.wParam*/;
 }
 
