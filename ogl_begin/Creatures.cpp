@@ -214,48 +214,57 @@ void Player::readFromFile(std::ifstream& fin)
 	}
 }
 
-std::string Player::getLvlString()
+std::string Player::getLvlString() const
 {
 	return std::to_string(lvl);
 }
 
-std::string Player::getAgilityString()
+std::string Player::getAgilityString() const
 {
 	return std::to_string(getAgility());
 }
 
-std::string Player::getPowerString()
+std::string Player::getPowerString() const
 {
 	return std::to_string(getPower());
 }
 
-std::string Player::getIntelligenceString()
+std::string Player::getIntelligenceString() const
 {
 	return std::to_string(getIntelligence());
 }
 
-std::string Player::getProtectionString()
+std::string Player::getProtectionString() const
 {
 	return std::to_string(getProtection());
 }
 
-std::string Player::getDmgString()
+std::string Player::getDmgString() const
 {
 	return std::to_string(getDamage());
 }
 
-std::string Player::getMovepointsString()
+std::string Player::getMovepointsString() const
 {
 	return std::to_string(getMovepoints());
 }
 
-std::string Player::getExpString()
+std::string Player::getExpString() const
 {
 	std::string string = "";
 	string.append(std::to_string(getExp()));
 	string.append("/");
 	string.append(std::to_string((int)pow(2, lvl)));
 	
+	return string;
+}
+
+std::string Player::getHpString() const
+{
+	std::string string = "";
+	string.append(std::to_string(getHp()));
+	string.append("/");
+	string.append(std::to_string(getMaxHp()));
 	return string;
 }
 
@@ -292,6 +301,8 @@ void Player::upStats(Stat stat)
 			if (playerSound != nullptr)
 				playerSound->play2D("sound\\power.wav", false);
 			power++;
+			setMaxHp(getMaxHp() + 20);
+			setDamage(Creature::getDamage() + 10);
 			break;
 		case intel:
 			intelligence++;

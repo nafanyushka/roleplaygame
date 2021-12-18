@@ -46,7 +46,7 @@ namespace Map
 	auto botLogicIterator = Enemy::getEnemys().begin();
 	Scene scene = Scene::menu;
 	ISoundEngine* soundEngine = nullptr;
-
+	int animCounter = 0;
 	//TEXTURES
 	float textureMap[] = { 0,1, 1,1, 1,0, 0,0 };
 	unsigned int humanTexture;

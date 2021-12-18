@@ -163,7 +163,7 @@ void drawPlayer(float size, float x, float y, Creature* creature)
 
 void drawInfoSquare(float size, float x, float y, float fading)
 {
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f * sin(fading / 4.0f) * 0.5f - 0.05f);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f * sin(fading /	16.0f) * 0.5f - 0.05f);
 	drawSquare(size, x, y);
 }
 
@@ -571,6 +571,10 @@ void drawHealthBar()
 	glEnd();
 	glLineWidth(1);
 	glPopMatrix();
+	glPushMatrix();
+	glLoadIdentity();
+	printText(Map::player.getHpString(), -0.97f, -0.96f, 3.0f);
+	glPopMatrix();
 }
 
 void drawEquipment()
@@ -641,6 +645,22 @@ void drawInfo()
 		if (infoEnvironment != nullptr)
 			showInfo(infoEnvironment->getString());
 	}
+}
+
+void drawLoseScreen()
+{
+	glPushMatrix();
+		glLoadIdentity();
+		printText("YOU LOSE!", -0.6, 0, 16.0f);
+	glPopMatrix();
+}
+
+void drawWinScreen()
+{
+	glPushMatrix();
+	glLoadIdentity();
+	printText("YOU WIN!", -0.6, 0, 16.0f);
+	glPopMatrix();
 }
 
 void move(int& x, int& y)
@@ -970,7 +990,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	menuInit();
 	gameInit();
 	/* program main loop */
-	while (!bQuit && Map::player.getHp() > 0 && !Map::player.getIsEnd() && !Map::isEnd)
+	while (!bQuit && !Map::isEnd)
 	{
 		/* check for messages */
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -1054,6 +1074,38 @@ int WINAPI WinMain(HINSTANCE hInstance,
 					while (!botsMove());
 				}
 				//-----------------------------------------------------------------------GRAPHICS
+				if (Map::player.getHp() <= 0)
+				{
+					Map::scene = lose;
+					Map::soundEngine->stopAllSounds();
+					Map::soundEngine->play2D("sound\\lose.wav", false);
+					Map::player.getPlayerSound()->stopAllSounds();
+				}
+				if (Map::player.getIsEnd()) 
+				{
+					Map::scene = win;
+					Map::soundEngine->stopAllSounds();
+					Map::soundEngine->play2D("sound\\win.wav", false);
+					Map::player.getPlayerSound()->stopAllSounds();
+				}
+				Sleep(1);
+			}
+				break;
+			case lose:
+			{
+				drawLoseScreen();
+				Map::animCounter++;
+				if (Map::animCounter > 10000) Map::scene = Scene::ext;
+				SwapBuffers(hDC);
+				Sleep(1);
+			}
+				break;
+			case win:
+			{
+				drawWinScreen();
+				Map::animCounter++;
+				if(Map::animCounter > 10000) Map::scene = Scene::ext;
+				SwapBuffers(hDC);
 				Sleep(1);
 			}
 				break;
