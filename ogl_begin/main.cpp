@@ -59,7 +59,8 @@ void gameInit()
 	loadTexture("graphics/pants.png", Map::pantsTexture);
 	loadTexture("graphics/inventory.png", Map::inventoryTexture);
 	loadTexture("graphics/kalik.png", Map::kalikTexture);
-	//Map::soundEngine = createIrrKlangDevice();
+	Map::soundEngine = createIrrKlangDevice();
+	Map::player.getPlayerSound() = createIrrKlangDevice();
 }
 
 void menuInit()
@@ -225,9 +226,11 @@ Scene tapOnMenu(float x, float y)
 {
 	if (x > 0.5f && x < 0.9f && y > 0.45f && y < 0.95f)
 	{
+		//saveDefaultMap();
 		loadDefaultMap();
 		saveMap();
-		//Map::soundEngine->play2D("sound/ost.mp3", true);
+		Map::soundEngine->play2D("sound/ost.wav", true);
+		Map::soundEngine->setSoundVolume(Map::soundEngine->getSoundVolume() * 0.5);
 		return game;
 	}
 	else if (x > 0.5f && x < 0.9f && y > 0.0f && y < 0.4f)
@@ -238,7 +241,8 @@ Scene tapOnMenu(float x, float y)
 			Environment::clearMap();
 			return menu;
 		}
-		//Map::soundEngine->play2D("sound/ost.mp3", true);
+		Map::soundEngine->play2D("sound/ost.wav", true);
+		Map::soundEngine->setSoundVolume(Map::soundEngine->getSoundVolume() * 0.5);
 		return game;
 
 	}
@@ -494,7 +498,11 @@ void tapOnCharacteristics(float x, float y)
 	float size = 0.5f;
 	float otstup = 0.1f;
 	if (x > -1.0f + otstup && x < -1.0f + otstup + size / 2.0f && y > 1.0f - size && y < 1.0f - size + size / 2.0f)
+	{
 		saveMap();
+		if (Map::player.getPlayerSound() != nullptr)
+			Map::player.getPlayerSound()->play2D("sound\\save.wav", false);
+	}
 	else if (x > -1.0f + size + (otstup + size / 4.0f) * 1.0f && x < size / 4.0f + -1.0f + size + (otstup + size / 4.0f) * 1.0f
 		&& y > 1.0f - size + size / 4.0f && y < 1.0f - size + size / 4.0f + size / 4.0f)
 	{
@@ -1065,7 +1073,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	DestroyWindow(hwnd);
 	Environment::clearMap();
 	Enemy::clearEnemys();
-	//Map::soundEngine->drop();
+	if(Map::soundEngine != nullptr) Map::soundEngine->drop();
 	return 0/*msg.wParam*/;
 }
 

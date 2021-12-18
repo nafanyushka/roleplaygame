@@ -193,9 +193,11 @@ void Player::readFromFile(std::ifstream& fin)
 	//delete[] equipment;
 	Item** inv = inventory;
 	Equipment** eq = equipment;
+	ISoundEngine* eng = playerSound;
 	fin.read((char*)this + sizeof(void*), sizeof(Player) - sizeof(void*));
 	inventory = inv;
 	equipment = eq;
+	playerSound = eng;
 	//inventory = new Item * [INVENTORY_SIZE];
 	//equipment = new Equipment * [EQUIPMENT_SIZE];
 	for (int i = 0; i < getItems(); i++)
@@ -271,6 +273,8 @@ void Player::upLvl()
 			return;
 		lvlPoints += (++lvl) / 2;
 		setExp(getExp() - (int)pow(2, lvl - 1));
+		if (playerSound != nullptr)
+			playerSound->play2D("sound\\lvlup.wav", false);
 	}
 
 void Player::upStats(Stat stat)
@@ -281,12 +285,18 @@ void Player::upStats(Stat stat)
 		{
 		case agil:
 			agility++;
+			if (playerSound != nullptr)
+				playerSound->play2D("sound\\agil.wav", false);
 			break;
 		case Stat::power:
+			if (playerSound != nullptr)
+				playerSound->play2D("sound\\power.wav", false);
 			power++;
 			break;
 		case intel:
 			intelligence++;
+			if (playerSound != nullptr)
+				playerSound->play2D("sound\\int.wav", false);
 			break;
 		}
 		lvlPoints--;
@@ -343,6 +353,11 @@ void Player::equip(int index)
 				setDamage(getDamage() + potion->getEffect());
 				break;
 			}
+			if (playerSound != nullptr)
+			{
+				playerSound->stopAllSounds();
+				playerSound->play2D("sound\\potion.wav", false);
+			}
 			return;
 		}
 		Equipment* eq = dynamic_cast<Equipment*>(getInventory()[index]);
@@ -365,6 +380,8 @@ void Player::equip(int index)
 			select = BOOTS;
 			break;
 		}
+		if (playerSound != nullptr)
+			playerSound->play2D("sound\\equipment.wav", false);
 		if (equipment[select] != nullptr)
 		{
 			getInventory()[index] = dynamic_cast<Item*>(equipment[select]);
@@ -383,6 +400,8 @@ void Player::unequip(int index)
 	if (equipment[index] == nullptr) return;
 	Equipment* disequipment = equipment[index];
 	equipment[index] = nullptr;
+	if (playerSound != nullptr)
+		playerSound->play2D("sound\\unequipment.wav", false);
 	if (getItems() < getInventorySize())
 		pickup(dynamic_cast<Item*>(disequipment));
 }
@@ -392,6 +411,8 @@ void Player::dropItem(int index)
 		if (index > getItems() || index < 0)
 			return;
 		delete getInventory()[index];
+		if (playerSound != nullptr)
+			playerSound->play2D("sound\\drop.wav", false);
 		getInventory()[index] = getInventory()[getItems() - 1];
 		setItems(getItems() - 1);
 	}
@@ -414,12 +435,16 @@ void Player::move(Direction vector, const int& mapSize)
 			break;
 		}
 		setMovepoints(getMovepoints() - 1);
+		if (playerSound != nullptr)
+			playerSound->play2D("sound\\step.wav");
 	}
 
 ItemMassive* Player::hit(Creature& creature)
 {
 	int dmg = getDamageTo(creature.getType());
 	dmg = dmg > (creature.getProtection() / getPower()) ? dmg - creature.getProtection() / getPower() : 0;
+	if (playerSound != nullptr)
+		playerSound->play2D("sound\\kick.wav", false);
 	creature.setHp(creature.getHp() - dmg);
 	setMovepoints(getMovepoints() - 1);
 	ItemMassive* im = nullptr;

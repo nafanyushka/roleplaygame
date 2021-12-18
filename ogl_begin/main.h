@@ -8,7 +8,8 @@
 #include "Environment.h"
 #include "Map.h"
 #include "library/stb_easy_font.h"
-#include "library/irrklang/irrKlang.h"
+//#include "library/irrklang/irrKlang.h"
+#include <irrKlang.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "library/stb_image.h"
 using namespace irrklang;
@@ -44,7 +45,7 @@ namespace Map
 	Direction* pathToPlayer = nullptr;
 	auto botLogicIterator = Enemy::getEnemys().begin();
 	Scene scene = Scene::menu;
-	//ISoundEngine* soundEngine;
+	ISoundEngine* soundEngine = nullptr;
 
 	//TEXTURES
 	float textureMap[] = { 0,1, 1,1, 1,0, 0,0 };
@@ -310,6 +311,7 @@ inline void createMap()
 	new Chest(Coord(5, 4), new Protection(bib, 5), true, 2);
 	new Chest(Coord(13, 9), new Protection(pants, 10), true, 3);
 	new Chest(Coord(1, 9), new Item(masterkey), true, 1);
+	new Chest(Coord(1, 4), new Potion(30, hp), true, 2);
 
 	for (auto i = Environment::getMap()->begin(); i != Environment::getMap()->end(); i++)
 	{

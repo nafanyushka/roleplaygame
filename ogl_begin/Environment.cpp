@@ -82,8 +82,12 @@
 					if (personalChance <= (int)chance) {
 						//player.dropItem(i);
 						setStatus(false);
+						if (player.getPlayerSound() != nullptr)
+							player.getPlayerSound()->play2D("sound\\open.wav", false);
 						player.setMovepoints(player.getMovepoints() - 1);
 						player.pickup(item);
+						if (player.getPlayerSound() != nullptr)
+							player.getPlayerSound()->play2D("sound\\equip.wav", false);
 						item = nullptr;
 						return;
 					}
@@ -91,6 +95,11 @@
 					{
 						player.setMovepoints(player.getMovepoints() - 1);
 						player.dropItem(i);
+						if (player.getPlayerSound() != nullptr)
+						{
+							player.getPlayerSound()->stopAllSounds();
+							player.getPlayerSound()->play2D("sound\\crashmasterkey.wav", false);
+						}
 						return;
 					}
 					break;
@@ -102,6 +111,8 @@
 		{
 			player.setMovepoints(player.getMovepoints() - 1);
 			player.pickup(item);
+			if (player.getPlayerSound() != nullptr)
+				player.getPlayerSound()->play2D("sound\\equip.wav", false);
 			item = nullptr;
 			return;
 		}
@@ -139,11 +150,18 @@
 					if ((int)((float)(rand() % 101) / (float)player.getAgility()) <= (int)chance) {
 						//player.dropItem(i);
 						setStatus(false);
+						if (player.getPlayerSound() != nullptr)
+							player.getPlayerSound()->play2D("sound\\open.wav", false);
 						return;
 					}
 					else
 					{
 						player.dropItem(i);
+						if (player.getPlayerSound() != nullptr)
+						{
+							player.getPlayerSound()->stopAllSounds();
+							player.getPlayerSound()->play2D("sound\\crashmasterkey.wav", false);
+						}
 						return;
 					}
 				}

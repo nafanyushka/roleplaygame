@@ -4,8 +4,10 @@
 #include "Items.h"
 #include <iostream>
 #include <fstream>
+#include <irrKlang.h>
 //#include <list>
 #include "library/List.h"
+using namespace irrklang;
 
 #define WEAPON 0
 #define HELMET 1
@@ -76,6 +78,7 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 	class Player : public Creature //x, y - Îòíîñèòåëüíî êàðòû, à íå ìàññèâà ñèìâîëîâ.
 	{
 	private:
+		ISoundEngine* playerSound = nullptr; // ÍÅ ÇÀÁÛÂÀÅÌ ÅÃÎ ÈÍÈÖÈÀËÈÇÈÐÎÂÀÒÜ!
 		static const int INVENTORY_SIZE = 8;
 		int lvl;
 		int lvlPoints;
@@ -119,7 +122,9 @@ int getCoordPlane(int coord); int getCoordMap(int coord);
 				}
 				delete[] equipment;
 			}
+			if (playerSound != nullptr) playerSound->drop();
 		}
+		inline ISoundEngine*& getPlayerSound() { return playerSound; }
 		inline bool& getIsEnd() { return isEnd; }
 		inline Item** const& getInventory() const { return inventory; }
 		inline Equipment** const& getEquipment() const { return equipment; }
