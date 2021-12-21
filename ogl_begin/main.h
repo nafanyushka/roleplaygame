@@ -297,7 +297,7 @@ inline void createMap()
 
 
 
-	for (auto i = Environment::getMap()->begin(); i != Environment::getMap()->end(); i++)
+	for (auto i = EnvironmentContainer::getMap().begin(); i != EnvironmentContainer::getMap().end(); i++)
 	{
 		int x = i->second->getCoord()->x;
 		int y = i->second->getCoord()->y;
@@ -313,7 +313,7 @@ inline void createMap()
 	new Chest(Coord(1, 9), new Item(masterkey), true, 1);
 	new Chest(Coord(1, 4), new Potion(30, hp), true, 2);
 
-	for (auto i = Environment::getMap()->begin(); i != Environment::getMap()->end(); i++)
+	for (auto i = EnvironmentContainer::getMap().begin(); i != EnvironmentContainer::getMap().end(); i++)
 	{
 		int x = i->second->getCoord()->x;
 		int y = i->second->getCoord()->y;
@@ -500,7 +500,7 @@ inline void saveEnvironment(std::string dir)
 		fout.close();
 		fout.open(dir, std::ofstream::binary | std::ofstream::in);
 	}
-	Environment::saveToFile(fout);
+	EnvironmentContainer::saveToFile(fout);
 	fout.close();
 }
 
@@ -536,7 +536,7 @@ inline bool loadEnvironment(std::string dir)
 	fin.open(dir, std::ifstream::binary | std::ifstream::in);
 	if (!fin.is_open())
 		return false;
-	Environment::loadFromFile(fin);
+	EnvironmentContainer::loadFromFile(fin);
 	fin.close();
 	return true;
 }
@@ -567,7 +567,7 @@ inline bool load()
 	if(isLoading) isLoading = loadEnvironment(defaultPath);
 	if (!isLoading)
 	{
-		Environment::clearMap();
+		EnvironmentContainer::clearMap();
 		Enemy::clearEnemys();
 		return false;
 	}

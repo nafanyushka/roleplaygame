@@ -238,7 +238,7 @@ Scene tapOnMenu(float x, float y)
 		if (!load())
 		{
 			Enemy::clearEnemys();
-			Environment::clearMap();
+			EnvironmentContainer::clearMap();
 			return menu;
 		}
 		Map::soundEngine->play2D("sound/ost.wav", true);
@@ -342,16 +342,16 @@ void see(int& x, int& y, float& d)
 				}
 				else if (place == '!')
 				{
-					drawDoor(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus(), false);
+					drawDoor(d, d * (float)i, d * (float)j, EnvironmentContainer::getMap().find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus(), false);
 				}
 				else if (place == '?')
 				{
-					drawDoor(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus(), true);
+					drawDoor(d, d * (float)i, d * (float)j, EnvironmentContainer::getMap().find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus(), true);
 
 				}
 				else if (place == 'c')
 				{
-					drawChest(d, d * (float)i, d * (float)j, Environment::getMap()->find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus());
+					drawChest(d, d * (float)i, d * (float)j, EnvironmentContainer::getMap().find(std::pair<int, int>(coordX + i, coordY + j))->second->getStatus());
 				}
 				if (coordX + i == Map::info.x && coordY + j == Map::info.y)
 				{
@@ -685,7 +685,7 @@ void move(int& x, int& y)
 			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
-				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* door = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				if ((*door).getStatus())
 				{
 					door->iterate(Map::player);
@@ -695,7 +695,7 @@ void move(int& x, int& y)
 			}
 			else if (*nextC == 'c')
 			{
-				Environment* chest = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* chest = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				chest->iterate(Map::player);
 			}
 		} } }
@@ -716,7 +716,7 @@ void move(int& x, int& y)
 			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
-				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* door = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				if ((*door).getStatus())
 				{
 					door->iterate(Map::player);
@@ -726,7 +726,7 @@ void move(int& x, int& y)
 			}
 			else if (*nextC == 'c')
 			{
-				Environment* chest = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* chest = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				chest->iterate(Map::player);
 			}
 		} } }
@@ -746,7 +746,7 @@ void move(int& x, int& y)
 			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
-				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* door = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				if ((*door).getStatus())
 				{
 					door->iterate(Map::player);
@@ -756,7 +756,7 @@ void move(int& x, int& y)
 			}
 			else if (*nextC == 'c')
 			{
-				Environment* chest = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* chest = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				chest->iterate(Map::player);
 			}
 		} } }
@@ -776,7 +776,7 @@ void move(int& x, int& y)
 			else if (*nextC == '!' || *nextC == '?')
 			{
 				//*nextC = '.';
-				Environment* door = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* door = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				if ((*door).getStatus())
 				{
 					door->iterate(Map::player);
@@ -786,7 +786,7 @@ void move(int& x, int& y)
 			}
 			else if (*nextC == 'c')
 			{
-				Environment* chest = (Environment::getMap()->find(std::pair<int, int>(c.x, c.y))->second);
+				Environment* chest = (EnvironmentContainer::getMap().find(std::pair<int, int>(c.x, c.y))->second);
 				chest->iterate(Map::player);
 			}
 		} } }
@@ -1086,7 +1086,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 					Map::scene = win;
 					Map::soundEngine->stopAllSounds();
 					Map::soundEngine->play2D("sound\\win.wav", false);
-					Map::player.getPlayerSound()->stopAllSounds();
 				}
 				Sleep(1);
 			}
@@ -1123,7 +1122,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	/* destroy the window explicitly */
 	DestroyWindow(hwnd);
-	Environment::clearMap();
+	EnvironmentContainer::clearMap();
 	Enemy::clearEnemys();
 	if(Map::soundEngine != nullptr) Map::soundEngine->drop();
 	return 0/*msg.wParam*/;

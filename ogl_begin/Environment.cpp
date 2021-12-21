@@ -1,9 +1,9 @@
 #include "Environment.h"
 #include <ctime>
 #include <string>
-	std::map<std::pair<int, int>, Environment*> Environment::environmentOnMap;
+	std::map<std::pair<int, int>, Environment*> EnvironmentContainer::environmentOnMap;
 
-	void Environment::clearMap()
+	void EnvironmentContainer::clearMap()
 	{
 		for (std::map<std::pair<int, int>, Environment*>::iterator it = environmentOnMap.begin(); it != environmentOnMap.end(); it++)
 		{
@@ -14,7 +14,7 @@
 
 	Environment* Environment::getEnvironment(int x, int y)
 	{
-		return Environment::getMap()->find(std::pair<int, int>(x, y)) == Environment::getMap()->end() ? nullptr : Environment::getMap()->find(std::pair<int, int>(x, y))->second;
+		return EnvironmentContainer::getMap().find(std::pair<int, int>(x, y)) == EnvironmentContainer::getMap().end() ? nullptr : EnvironmentContainer::getMap().find(std::pair<int, int>(x, y))->second;
 	}
 
 	std::string Environment::getString()
@@ -23,12 +23,12 @@
 		return string;
 	}
 
-	void Environment::saveToFile(std::ofstream& fout)
+	void EnvironmentContainer::saveToFile(std::ofstream& fout)
 	{
-		int size = getMap()->size();
+		int size = environmentOnMap.size();
 		fout.write((char*)&size, sizeof(int));
 		int count = 0;
-		for (auto i = getMap()->begin(); i != getMap()->end(); i++)
+		for (auto i = environmentOnMap.begin(); i != environmentOnMap.end(); i++)
 		{
 			if (count == 31)
 				std::cout << "BRO" << std::endl;
@@ -37,7 +37,7 @@
 		}
 	}
 
-	void Environment::loadFromFile(std::ifstream& fin)
+	void EnvironmentContainer::loadFromFile(std::ifstream& fin)
 	{
 		int size = 0;
 		fin.read((char*)&size, sizeof(int));
@@ -61,7 +61,7 @@
 			if (i == 31)
 				std::cout << "BAN!" << std::endl;
 			e->load(fin);
-			getMap()->emplace(std::pair<int, int>(e->getCoord()->x, e->getCoord()->y), e);
+			environmentOnMap.emplace(std::pair<int, int>(e->getCoord()->x, e->getCoord()->y), e);
 		}
 	}
 
